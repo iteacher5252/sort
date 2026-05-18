@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>퀵 정렬: 통합 마스터 v5.4 (분석 완료판)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        
+        :root { --speed: 1600ms; }
+        
+        .stage { background: #0f172a; border-radius: 3rem; height: 420px; position: relative; width: 100%; max-width: 1000px; margin: 0 auto; overflow: hidden; box-shadow: inset 0 0 60px rgba(0,0,0,0.6); }
+        .card-visual { width: 70px; height: 100px; background: white; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; font-weight: 900; position: absolute; bottom: 130px; transition: transform var(--speed) cubic-bezier(0.25, 1, 0.5, 1), left var(--speed) cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease; border: 2px solid #e2e8f0; box-shadow: 0 10px 15px rgba(0,0,0,0.3); z-index: 10; }
+        
+        .card-val { font-size: 1.5rem; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+        .card-suit { font-size: 10px; color: #1e293b; line-height: 1; }
+        
+        .pointer { position: absolute; bottom: 85px; width: 32px; text-align: center; font-weight: 800; font-size: 12px; transition: all var(--speed) ease; z-index: 100; padding: 2px 0; border-radius: 6px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(1px); visibility: hidden; }
+        #pointerL { color: #3b82f6; border: 2px solid #3b82f6; transform: translateX(3px); }
+        #pointerR { color: #ef4444; border: 2px solid #ef4444; transform: translateX(33px); }
+        
+        .pivot { transform: translateY(-160px) scale(1.05) !important; z-index: 150 !important; border-color: #ef4444 !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+        .comparing { transform: translateY(-20px); box-shadow: 0 0 25px rgba(255, 255, 255, 0.8); }
+        .stop-here { transform: translateY(-35px) scale(1.02); border-color: #3b82f6 !important; box-shadow: 0 0 25px rgba(59, 130, 246, 0.7); }
+        .stop-here-R { transform: translateY(-35px) scale(1.02); border-color: #ef4444 !important; box-shadow: 0 0 25px rgba(239, 68, 68, 0.7); }
+        .single-check { transform: translateY(-40px) scale(1.05); border-color: #eab308 !important; box-shadow: 0 0 30px rgba(234, 179, 8, 0.8); z-index: 120 !important; }
+        
+        .sorted { background: #d1fae5 !important; color: #059669 !important; border-color: #10b981 !important; transform: translateY(0) scale(1) !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .slot { position: absolute; width: 70px; height: 100px; bottom: 130px; border: 2px dashed #334155; border-radius: 12px; z-index: 1; }
+        .log-box { font-size: 13px; height: 420px; overflow-y: auto; background: white; padding: 20px; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); scroll-behavior: smooth; }
+        .log-header { font-weight: 800; color: #6b21a8; margin-top: 10px; border-bottom: 2px solid #f3e8ff; padding-bottom: 4px; }
+        
+        .analysis-table { width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 1.5rem; overflow: hidden; }
+        .analysis-table th { background: #f8fafc; color: #64748b; font-weight: 700; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: center; }
+        .analysis-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+        .step-tag { background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
+        .done-tag { background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
+        .val-pivot { color: #ef4444; font-weight: 900; background: #fef2f2; padding: 2px 6px; border-radius: 4px; }
+        .val-sorted { color: #10b981; font-weight: 800; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-[1200px] mx-auto">
+        <header class="mb-8 bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 퀵 정렬 통합 마스터 v5.4</h1>
+                <p class="text-slate-500 text-sm">마지막 최종 정렬 결과 분석 테이블 기록 연동 버전</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-6 bg-slate-50 p-4 rounded-2xl">
+                <div class="flex gap-4 border-r border-slate-200 pr-6 text-center">
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400">총 누적 비교</span>
+                        <span id="totalCompScore" class="text-xl font-black text-amber-500">0</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400">총 누적 교환</span>
+                        <span id="totalSwapScore" class="text-xl font-black text-blue-500">0</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-bold text-slate-400">카드 개수: <span id="countVal" class="text-purple-600">5</span>개</span>
+                    <input type="range" id="cardCountRange" min="5" max="10" value="5" class="w-24 accent-purple-600">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-bold text-slate-400">정렬 속도: <span id="speedVal" class="text-purple-600">느리게 (1600ms)</span></span>
+                    <input type="range" id="speedRange" min="600" max="1600" step="50" value="1600" oninput="changeSpeed()" class="w-36 accent-purple-600">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button id="startBtn" onclick="handleStart()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-bold transition text-xs shadow-md">시작</button>
+                    <button id="pauseBtn" onclick="handlePause()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold transition text-xs shadow-md" disabled>일시중지</button>
+                    <button id="resetBtn" onclick="handleReset()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-bold transition text-xs shadow-md">초기화</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+            <div class="lg:col-span-3 stage" id="stage">
+                <div id="pointerL" class="pointer">L</div>
+                <div id="pointerR" class="pointer">R</div>
+            </div>
+            <div class="log-box" id="logBox">
+                <div class="text-slate-400 font-bold italic">정렬 대기 중...</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+            <h3 class="text-lg font-extrabold text-slate-800 mb-4">📊 분할 회차별 독립 수치 실시간 분석</h3>
+            <table class="analysis-table">
+                <thead>
+                    <tr>
+                        <th width="120">분할 회차</th>
+                        <th>배열 데이터 상태</th>
+                        <th width="140">회차별 비교 (누적)</th>
+                        <th width="140">회차별 교환 (누적)</th>
+                    </tr>
+                </thead>
+                <tbody id="analysisBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let cardElements = [];
+        let sortedIndices = new Set();
+        let isRunning = false;
+        let isPaused = false;
+        let pauseResolve = null;
+        
+        let pCount = 0;
+        let globalComp = 0;
+        let globalSwap = 0;
+        
+        let startX = 40;
+        let gap = 105;
+        const suit = '♠';
+
+        function getDelay() { return parseInt(document.getElementById('speedRange').value); }
+
+        function changeSpeed() {
+            const delay = getDelay();
+            const textEl = document.getElementById('speedVal');
+            if(delay >= 1400) textEl.innerText = `느리게 (${delay}ms)`;
+            else if(delay >= 950) textEl.innerText = `기본 (${delay}ms)`;
+            else textEl.innerText = `빠르게 (${delay}ms)`;
+            
+            document.documentElement.style.setProperty('--speed', `${delay * 0.4}ms`);
+        }
+
+        function checkPause() {
+            if (!isPaused) return Promise.resolve();
+            return new Promise(resolve => {
+                pauseResolve = resolve;
+            });
+        }
+
+        document.getElementById('cardCountRange').addEventListener('input', (e) => {
+            document.getElementById('countVal').innerText = e.target.value;
+            if (!isRunning) resetStage();
+        });
+
+        function addLog(html, type = '') {
+            const logBox = document.getElementById('logBox');
+            const entry = document.createElement('div');
+            entry.className = `mb-1 pb-1 border-b border-slate-50 text-slate-700 text-xs ${type}`;
+            entry.innerHTML = html;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function refreshScoreboard() {
+            document.getElementById('totalCompScore').innerText = globalComp;
+            document.getElementById('totalSwapScore').innerText = globalSwap;
+        }
+
+        // 테이블 동적 드로잉 함수 (최종 완료 타입 대응 고도화)
+        function updateAnalysisTable(step, data, comp, swap, pivotIdx, isDoneState = false) {
+            const body = document.getElementById('analysisBody');
+            const tr = document.createElement('tr');
+            
+            let tagHtml = `<span class="step-tag">${step}회차</span>`;
+            if (step === '시작') tagHtml = `<span class="step-tag !bg-slate-700 !text-white">시작상태</span>`;
+            if (isDoneState) tagHtml = `<span class="done-tag">최종 완료</span>`;
+
+            const rowData = data.map((v, idx) => {
+                if (!isDoneState && idx === pivotIdx) return `<span class="val-pivot">${v}</span>`;
+                if (isDoneState || sortedIndices.has(idx)) return `<span class="val-sorted">${v}</span>`;
+                return v;
+            }).join(', ');
+
+            // 교육적 효과를 극대화하기 위해 독립 수치 뒤 괄호안에 실시간 누적 스코어도 함께 표기
+            const compDisplay = isDoneState ? `- (총 ${globalComp}회)` : `${comp}회 <span class="text-slate-400 text-[11px]">(${globalComp})</span>`;
+            const swapDisplay = isDoneState ? `- (총 ${globalSwap}회)` : `${swap}회 <span class="text-slate-400 text-[11px]">(${globalSwap})</span>`;
+
+            tr.innerHTML = `
+                <td>${tagHtml}</td>
+                <td class="font-mono font-bold text-slate-700">[ ${rowData} ]</td>
+                <td class="text-amber-600 font-bold">${compDisplay}</td>
+                <td class="text-blue-600 font-bold">${swapDisplay}</td>
+            `;
+            body.prepend(tr);
+        }
+
+        function resetStage() {
+            const stage = document.getElementById('stage');
+            stage.querySelectorAll('.card-visual, .slot').forEach(c => c.remove());
+            cardElements = [];
+            
+            const count = parseInt(document.getElementById('cardCountRange').value);
+            let nums = [];
+
+            if (count === 5) {
+                nums = [8, 4, 1, 9, 7];
+            } else {
+                let basePool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                for (let i = basePool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [basePool[i], basePool[j]] = [basePool[j], basePool[i]];
+                }
+                nums = basePool.slice(0, count);
+            }
+
+            const totalWidth = stage.offsetWidth;
+            gap = Math.min(95, (totalWidth - 100) / count);
+            startX = (totalWidth - (gap * (count - 1) + 70)) / 2;
+
+            nums.forEach((val, i) => {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.style.left = `${startX + (i * gap)}px`;
+                stage.appendChild(slot);
+
+                const card = document.createElement('div');
+                card.className = 'card-visual';
+                card.style.left = `${startX + (i * gap)}px`;
+                card.innerHTML = `
+                    <div class="card-suit text-left">${suit}</div>
+                    <div class="card-val">${val}</div>
+                    <div class="card-suit text-right" style="transform: rotate(180deg)">${suit}</div>
+                `;
+                stage.appendChild(card);
+                cardElements.push({ val, el: card });
+            });
+            hidePointers();
+        }
+
+        function hidePointers() {
+            document.getElementById('pointerL').style.visibility = 'hidden';
+            document.getElementById('pointerR').style.visibility = 'hidden';
+        }
+
+        async function movePointer(id, idx) {
+            const p = document.getElementById(id);
+            if (idx < 0 || idx >= cardElements.length) {
+                p.style.visibility = 'hidden';
+            } else {
+                p.style.visibility = 'visible';
+                p.style.left = `${startX + (idx * gap)}px`;
+            }
+        }
+
+        function handlePause() {
+            if (!isRunning || isPaused) return;
+            isPaused = true;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('startBtn').innerText = '재시작';
+            document.getElementById('startBtn').disabled = false;
+            addLog('🛑 <b>정렬 일시중지됨</b>', 'text-amber-600 font-bold');
+        }
+
+        function handleReset() {
+            isRunning = false;
+            isPaused = false;
+            if (pauseResolve) {
+                pauseResolve();
+                pauseResolve = null;
+            }
+            pCount = 0;
+            globalComp = 0;
+            globalSwap = 0;
+            sortedIndices.clear();
+
+            refreshScoreboard();
+            document.getElementById('startBtn').innerText = '시작';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('cardCountRange').disabled = false;
+            document.getElementById('analysisBody').innerHTML = '';
+            resetStage();
+            document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">초기화 되었습니다.</div>';
+        }
+
+        async function handleStart() {
+            if (isRunning && isPaused) {
+                isPaused = false;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                addLog('▶️ <b>정렬 재개</b>', 'text-emerald-600 font-bold');
+                if (pauseResolve) pauseResolve();
+                return;
+            }
+
+            if (isRunning) return;
+            isRunning = true;
+            isPaused = false;
+            pCount = 0;
+            globalComp = 0;
+            globalSwap = 0;
+            sortedIndices.clear();
+            
+            refreshScoreboard();
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('cardCountRange').disabled = true;
+            document.getElementById('analysisBody').innerHTML = '';
+            
+            document.getElementById('logBox').innerHTML = '<div class="log-header">🚀 퀵 정렬 시뮬레이션 시작</div>';
+            updateAnalysisTable('시작', cardElements.map(c => c.val), 0, 0, -1);
+            
+            await new Promise(r => setTimeout(r, 600));
+            await quickSort(0, cardElements.length - 1);
+            
+            if (isRunning) { 
+                cardElements.forEach(c => {
+                    c.el.classList.remove('comparing', 'pivot', 'stop-here', 'stop-here-R', 'single-check');
+                    c.el.classList.add('sorted');
+                });
+                hidePointers();
+                addLog('🎊 <b>모든 구역 정렬 완료 및 확정!</b>', 'log-header !text-emerald-600 font-black');
+                
+                // 🛠️ [핵심 기능 수정]: 정렬이 완전히 완료된 상태의 데이터를 표 최상단에 기록 연동
+                updateAnalysisTable('완료', cardElements.map(c => c.val), 0, 0, -1, true);
+
+                isRunning = false;
+                document.getElementById('startBtn').innerText = '시작';
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('cardCountRange').disabled = false;
+            }
+        }
+
+        async function quickSort(low, high) {
+            if (!isRunning) return;
+            
+            if (low === high) {
+                await checkPause(); if (!isRunning) return;
+                await movePointer('pointerL', low);
+                await movePointer('pointerR', low);
+                
+                cardElements[low].el.classList.add('single-check');
+                addLog(`🔍 <b>[단일 원소 발견]</b> 인덱스 ${low} (값: ${cardElements[low].val}) 구역 자동 확정`, 'text-yellow-600 font-semibold');
+                
+                await new Promise(r => setTimeout(r, getDelay()));
+                
+                cardElements[low].el.classList.remove('single-check');
+                cardElements[low].el.classList.add('sorted');
+                sortedIndices.add(low);
+                hidePointers();
+                return;
+            }
+            
+            if (low > high) return;
+            
+            let pivotIdx = await partition(low, high);
+            if (!isRunning) return;
+            
+            await quickSort(low, pivotIdx - 1);
+            await quickSort(pivotIdx + 1, high);
+        }
+
+        async function partition(low, high) {
+            let pivotObj = cardElements[low];
+            let pivotVal = pivotObj.val;
+            pivotObj.el.classList.add('pivot');
+            
+            pCount++;
+            addLog(`📂 <b>[제 ${pCount}회차 분할 구역]</b> 인덱스 ${low} ~ ${high} 설정 (피벗: ${pivotVal})`, 'log-header');
+
+            let i = low + 1;
+            let j = high;
+
+            let stepComp = 0;
+            let stepSwap = 0;
+
+            await checkPause(); if (!isRunning) return;
+            await movePointer('pointerL', i);
+            await movePointer('pointerR', j);
+            await new Promise(r => setTimeout(r, getDelay()));
+
+            while (i <= j) {
+                while (i <= high) {
+                    await checkPause(); if (!isRunning) return;
+                    await movePointer('pointerL', i);
+                    cardElements[i].el.classList.add('comparing');
+                    
+                    stepComp++; globalComp++; refreshScoreboard();
+                    addLog(`🔴 L 포인터 조사: 인덱스 ${i} (값: ${cardElements[i].val})`);
+                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                    
+                    if (cardElements[i].val > pivotVal) {
+                        cardElements[i].el.classList.remove('comparing');
+                        cardElements[i].el.classList.add('stop-here');
+                        addLog(`⚠️ <b>L 정지</b>: 값 [${cardElements[i].val}]이 피벗(${pivotVal})보다 크므로 탐색을 멈춥니다!`, 'text-blue-600 font-semibold');
+                        await new Promise(r => setTimeout(r, getDelay() * 0.5));
+                        break;
+                    }
+                    cardElements[i].el.classList.remove('comparing');
+                    i++;
+                }
+                
+                while (j > low) {
+                    await checkPause(); if (!isRunning) return;
+                    await movePointer('pointerR', j);
+                    cardElements[j].el.classList.add('comparing');
+                    
+                    stepComp++; globalComp++; refreshScoreboard();
+                    addLog(`🔵 R 포인터 조사: 인덱스 ${j} (값: ${cardElements[j].val})`);
+                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                    
+                    if (cardElements[j].val < pivotVal) {
+                        cardElements[j].el.classList.remove('comparing');
+                        cardElements[j].el.classList.add('stop-here-R');
+                        addLog(`⚠️ <b>R 정지</b>: 값 [${cardElements[j].val}]이 피벗(${pivotVal})보다 작으므로 탐색을 멈춥니다!`, 'text-red-600 font-semibold');
+                        await new Promise(r => setTimeout(r, getDelay() * 0.5));
+                        break;
+                    }
+                    cardElements[j].el.classList.remove('comparing');
+                    j--;
+                }
+                
+                if (i < j) {
+                    await checkPause(); if (!isRunning) return;
+                    stepSwap++; globalSwap++; refreshScoreboard();
+                    addLog(`🔄 <b>교환 발생</b>: L의 정지값 [${cardElements[i].val}] ↔ R의 정지값 [${cardElements[j].val}]`);
+                    
+                    cardElements[i].el.classList.remove('stop-here');
+                    cardElements[j].el.classList.remove('stop-here-R');
+                    
+                    await swap(i, j);
+                }
+            }
+
+            await checkPause(); if (!isRunning) return;
+            
+            if (cardElements[i]) cardElements[i].el.classList.remove('comparing', 'stop-here');
+            if (cardElements[j]) cardElements[j].el.classList.remove('comparing', 'stop-here-R');
+
+            addLog(`🏁 탐색 종료. 피벗[${pivotVal}] ↔ 최종 정착지 R[${cardElements[j].val}] 교환`, 'font-semibold text-purple-700');
+            stepSwap++; globalSwap++; refreshScoreboard();
+            await swap(low, j);
+            
+            pivotObj.el.classList.remove('pivot');
+            void pivotObj.el.offsetWidth; 
+            pivotObj.el.classList.add('sorted');
+            sortedIndices.add(j);
+            
+            updateAnalysisTable(pCount, cardElements.map(c => c.val), stepComp, stepSwap, j);
+
+            return j;
+        }
+
+        async function swap(idx1, idx2) {
+            let obj1 = cardElements[idx1];
+            let obj2 = cardElements[idx2];
+            obj1.el.style.left = `${startX + (idx2 * gap)}px`;
+            obj2.el.style.left = `${startX + (idx1 * gap)}px`;
+            [cardElements[idx1], cardElements[idx2]] = [cardElements[idx2], cardElements[idx1]];
+            await new Promise(r => setTimeout(r, getDelay()));
+        }
+
+        window.onload = () => {
+            changeSpeed();
+            resetStage();
+        };
+        window.onresize = resetStage;
+    </script>
+</body>
+</html>
