@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>버블 정렬 시뮬레이터</title>
+    <title>버블 정렬 시뮬레이터 (우하단 문양 정렬판)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
@@ -12,136 +12,51 @@
         
         .stage { background: #0f172a; border-radius: 3rem; height: 420px; position: relative; width: 100%; max-width: 1000px; margin: 0 auto; overflow: hidden; box-shadow: inset 0 0 60px rgba(0,0,0,0.6); }
         
+        /* 💡 내용 요소는 그대로 유지하고, 애니메이션 프레임 드롭을 막기 위한 하드웨어 가속 및 트랜지션 곡선 최적화 */
         .card-visual { 
-            width: 70px; 
-            height: 100px; 
-            background: white; 
-            border-radius: 12px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            padding: 8px; 
-            font-weight: 900; 
-            position: absolute; 
-            bottom: 130px; 
-            transition: transform var(--speed) cubic-bezier(0.25, 1, 0.5, 1), left var(--speed) cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease, border-color 0.4s ease; 
-            border: 2px solid #e2e8f0; 
-            box-shadow: 0 10px 15px rgba(0,0,0,0.3); 
-            z-index: 10; 
+            width: 70px; height: 100px; background: white; border-radius: 12px; 
+            display: flex; flex-direction: column; justify-content: space-between; padding: 8px; font-weight: 900; 
+            position: absolute; bottom: 130px; 
+            will-change: left, transform, background-color, border-color;
+            transform: translate3d(0, 0, 0);
+            transition: transform var(--speed) cubic-bezier(0.25, 1, 0.5, 1), 
+                        left var(--speed) cubic-bezier(0.25, 1, 0.5, 1), 
+                        background-color 0.3s ease, border-color 0.3s ease; 
+            border: 2px solid #e2e8f0; box-shadow: 0 10px 15px rgba(0,0,0,0.3); z-index: 10; 
         }
         
         .card-val { font-size: 1.5rem; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
-        .card-suit { font-size: 10px; color: #1e293b; line-height: 1; }
+        .card-suit { font-size: 11px; line-height: 1; font-weight: bold; }
         
-        /* 🎨 시각 효과 클래스 스택 업데이트 (어두운 배경 대비 자연스러운 연출) */
+        .theme-red { color: #ef4444 !important; border-color: #fca5a5 !important; }
+        .theme-black { color: #1e293b !important; border-color: #cbd5e1 !important; }
         
-        /* 대조 상태: 부드러운 스카이 블루 */
-        .comparing { 
-            transform: translateY(-30px); 
-            box-shadow: 0 0 25px rgba(186, 230, 253, 0.6); 
-            z-index: 50 !important; 
-            border-color: #38bdf8 !important; 
-        }
+        /* 입체감 있는 모션 표현을 위해 translateY 값을 translate3d 하드웨어 가속으로 보정 */
+        .comparing { transform: translate3d(0, -30px, 0); box-shadow: 0 0 25px rgba(186, 230, 253, 0.6); z-index: 50 !important; border-color: #38bdf8 !important; }
+        .swapping { transform: translate3d(0, -40px, 0) scale(1.08); box-shadow: 0 0 30px rgba(254, 202, 202, 0.7); z-index: 100 !important; border-color: #ef4444 !important; }
+        .sorted { background: #d1fae5 !important; color: #059669 !important; border-color: #10b981 !important; transform: translate3d(0, 0, 0) scale(1) !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        /* [핵심 수정] 교환 상태: 형광 오렌지를 폐기하고 보편적인 소프트 연빨강 계열로 변경 */
-        .swapping { 
-            transform: translateY(-40px) scale(1.08); 
-            box-shadow: 0 0 30px rgba(254, 202, 202, 0.7); 
-            z-index: 100 !important; 
-            border-color: #ef4444 !important; /* 소프트 레드 테두리 */
-        }
+        .slot { position: absolute; width: 70px; height: 100px; bottom: 130px; border: 2px dashed #334155; border-radius: 12px; z-index: 1; }
+        .log-box { font-size: 13px; height: 420px; overflow-y: auto; background: white; padding: 20px; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); scroll-behavior: smooth; }
+        .log-header { font-weight: 800; color: #1e40af; margin-top: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 4px; }
         
-        /* 확정 상태: 신뢰를 주는 초록색 */
-        .sorted { 
-            background: #d1fae5 !important; 
-            color: #059669 !important; 
-            border-color: #10b981 !important; 
-            transform: translateY(0) scale(1) !important; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-        }
-        
-        .slot { 
-            position: absolute; 
-            width: 70px; 
-            height: 100px; 
-            bottom: 130px; 
-            border: 2px dashed #334155; 
-            border-radius: 12px; 
-            z-index: 1; 
-        }
-        
-        .log-box { 
-            font-size: 13px; 
-            height: 420px; 
-            overflow-y: auto; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 1.5rem; 
-            border: 1px solid #e2e8f0; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-            scroll-behavior: smooth; 
-        }
-        
-        .log-header { 
-            font-weight: 800; 
-            color: #1e40af; 
-            margin-top: 10px; 
-            border-bottom: 2px solid #dbeafe; 
-            padding-bottom: 4px; 
-        }
-        
-        .analysis-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 12px; 
-            background: white; 
-            border-radius: 1.5rem; 
-            overflow: hidden; 
-        }
-        
-        .analysis-table th { 
-            background: #f8fafc; 
-            color: #64748b; 
-            font-weight: 700; 
-            padding: 12px; 
-            border-bottom: 2px solid #e2e8f0; 
-            text-align: center; 
-        }
-        
-        .analysis-table td { 
-            padding: 12px; 
-            border-bottom: 1px solid #f1f5f9; 
-            text-align: center; 
-        }
-        
-        .step-tag { 
-            background: #e2e8f0; 
-            color: #475569; 
-            padding: 4px 10px; 
-            border-radius: 8px; 
-            font-weight: 800; 
-        }
-        
-        .done-tag { 
-            background: #d1fae5; 
-            color: #065f46; 
-            padding: 4px 10px; 
-            border-radius: 8px; 
-            font-weight: 800; 
-        }
-        
+        .analysis-table { width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 1.5rem; overflow: hidden; }
+        .analysis-table th { background: #f8fafc; color: #64748b; font-weight: 700; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: center; }
+        .analysis-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+        .step-tag { background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
+        .done-tag { background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
         .val-sorted { color: #10b981; font-weight: 800; }
     </style>
 </head>
 <body class="p-8">
-    <div class="max-w-[1200px] mx-auto">
-        <header class="mb-8 bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-wrap justify-between items-center gap-4">
+    <div class="max-w-[1300px] mx-auto">
+        <header class="mb-8 bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
             <div>
                 <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 버블 정렬 시뮬레이터</h1>
-                <p class="text-slate-500 text-sm"><span class="text-red-500 font-bold">전문가 집단</span>끼리 모여 정렬 알고리즘을 분석해보세요.</p>
+                <p class="text-slate-500 text-sm">트럼프 대각 레이아웃 (좌상단 문양 - 중앙 숫자 - 우하단 문양)</p>
             </div>
-            <div class="flex flex-wrap items-center gap-5 bg-slate-50 p-4 rounded-2xl">
-                <div class="flex gap-4 border-r border-slate-200 pr-5 text-center">
+            <div class="flex flex-wrap items-center gap-4 bg-slate-50 p-4 rounded-2xl w-full xl:w-auto">
+                <div class="flex gap-4 border-r border-slate-200 pr-4 text-center">
                     <div>
                         <span class="block text-[10px] font-bold text-slate-400">총 누적 비교</span>
                         <span id="totalCompScore" class="text-xl font-black text-amber-500">0</span>
@@ -151,18 +66,41 @@
                         <span id="totalSwapScore" class="text-xl font-black text-blue-500">0</span>
                     </div>
                 </div>
+                
                 <div class="flex flex-col gap-1">
-                    <span class="text-[10px] font-bold text-slate-400">카드 개수: <span id="countVal" class="text-blue-600">5</span>개</span>
-                    <input type="range" id="cardCountRange" min="5" max="10" value="5" class="w-20 accent-blue-600">
+                    <span class="text-[10px] font-bold text-slate-400">카드 문양 선택</span>
+                    <div class="flex gap-1" id="suitBtnGroup">
+                        <button onclick="selectSuit('♠')" id="btn-suit-♠" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-slate-800 border-slate-300 hover:bg-slate-100 transition shadow-sm">♠</button>
+                        <button onclick="selectSuit('♥')" id="btn-suit-♥" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-red-500 border-slate-300 hover:bg-red-50 transition shadow-sm">♥</button>
+                        <button onclick="selectSuit('♣')" id="btn-suit-♣" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-slate-800 border-slate-300 hover:bg-slate-100 transition shadow-sm">♣</button>
+                        <button onclick="selectSuit('◆')" id="btn-suit-◆" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-red-500 border-slate-300 hover:bg-red-50 transition shadow-sm">◆</button>
+                    </div>
                 </div>
+
+                <div class="flex flex-col gap-1 border-r border-slate-200 pr-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400">카드 수량 제어</span>
+                        <label class="inline-flex items-center text-[10px] gap-1 font-bold text-blue-600 cursor-pointer">
+                            <input type="checkbox" id="customCheck" onchange="toggleInputMode()" class="rounded text-blue-600 accent-blue-600"> 직접입력
+                        </label>
+                    </div>
+                    <div id="randomWrapper" class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-blue-600 min-w-[24px]"><span id="countVal">5</span>개</span>
+                        <input type="range" id="cardCountRange" min="5" max="10" value="5" class="w-24 accent-blue-600">
+                    </div>
+                    <div id="customWrapper" class="hidden">
+                        <input type="text" id="customInput" value="8, 4, 1, 9, 7" oninput="handleCustomInputDelay()" class="border border-slate-200 rounded-lg p-1 text-xs w-36 focus:outline-none focus:border-blue-500 font-mono font-bold">
+                    </div>
+                </div>
+
                 <div class="flex flex-col gap-1">
                     <span class="text-[10px] font-bold text-slate-400">정렬 속도: <span id="speedVal" class="text-blue-600">느리게 (1600ms)</span></span>
                     <input type="range" id="speedRange" min="400" max="1600" step="50" value="1600" oninput="changeSpeed()" class="w-28 accent-blue-600">
                 </div>
                 <div class="flex gap-1.5 pt-2">
-                    <button id="startBtn" onclick="handleStart()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold transition text-xs shadow-md">시작</button>
-                    <button id="pauseBtn" onclick="handlePause()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold transition text-xs shadow-md" disabled>일시중지</button>
-                    <button id="resetBtn" onclick="handleReset()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-bold transition text-xs shadow-md">초기화</button>
+                    <button id="startBtn" onclick="handleStart()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md">시작</button>
+                    <button id="pauseBtn" onclick="handlePause()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md" disabled>일시중지</button>
+                    <button id="resetBtn" onclick="handleReset()" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md">초기화</button>
                 </div>
             </div>
         </header>
@@ -191,21 +129,39 @@
     </div>
 
     <script>
-        let cardElements = [];
-        let sortedIndices = new Set();
-        let isRunning = false;
-        let isPaused = false;
-        let pauseResolve = null;
-        
-        let passCount = 0;
-        let globalComp = 0;
-        let globalSwap = 0;
-        
-        let startX = 40;
-        let gap = 105;
-        const suit = '♠';
+        let cardElements = []; let sortedIndices = new Set(); let isRunning = false; let isPaused = false; let pauseResolve = null;
+        let passCount = 0; let globalComp = 0; let globalSwap = 0;
+        let startX = 40; let gap = 105; let inputTimer = null;
+        let currentSuit = '♠';
 
         function getDelay() { return parseInt(document.getElementById('speedRange').value); }
+        function isRedSuit(suit) { return suit === '♥' || suit === '◆'; }
+
+        function selectSuit(suit) {
+            if (isRunning) return;
+            currentSuit = suit;
+            updateSuitButtons();
+            resetStage();
+        }
+
+        function updateSuitButtons() {
+            ['♠', '♥', '♣', '◆'].forEach(s => {
+                const btn = document.getElementById(`btn-suit-${s}`);
+                if (s === currentSuit) {
+                    if (isRedSuit(s)) {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-red-500 text-white border-red-500 shadow-inner scale-105 transition";
+                    } else {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-slate-800 text-white border-slate-800 shadow-inner scale-105 transition";
+                    }
+                } else {
+                    if (isRedSuit(s)) {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-red-500 border-slate-300 hover:bg-red-50 transition shadow-sm";
+                    } else {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-slate-800 border-slate-300 hover:bg-slate-100 transition shadow-sm";
+                    }
+                }
+            });
+        }
 
         function changeSpeed() {
             const delay = getDelay();
@@ -213,7 +169,26 @@
             if(delay >= 1300) textEl.innerText = `느리게 (${delay}ms)`;
             else if(delay >= 850) textEl.innerText = `기본 (${delay}ms)`;
             else textEl.innerText = `빠르게 (${delay}ms)`;
-            document.documentElement.style.setProperty('--speed', `${delay * 0.4}ms`);
+            
+            // 💡 끊김을 완벽히 잡기 위해 자바스크립트 비동기 타이머 지연 시간 대비 트랜지션 실행 시간을 최적의 비율(55%)로 고정 매칭합니다.
+            document.documentElement.style.setProperty('--speed', `${delay * 0.55}ms`);
+        }
+
+        function toggleInputMode() {
+            const isCustom = document.getElementById('customCheck').checked;
+            if(isCustom) {
+                document.getElementById('randomWrapper').classList.add('hidden');
+                document.getElementById('customWrapper').classList.remove('hidden');
+            } else {
+                document.getElementById('randomWrapper').classList.remove('hidden');
+                document.getElementById('customWrapper').classList.add('hidden');
+            }
+            if (!isRunning) resetStage();
+        }
+
+        function handleCustomInputDelay() {
+            clearTimeout(inputTimer);
+            inputTimer = setTimeout(() => { if (!isRunning) resetStage(); }, 600);
         }
 
         function checkPause() {
@@ -230,9 +205,7 @@
             const logBox = document.getElementById('logBox');
             const entry = document.createElement('div');
             entry.className = `mb-1 pb-1 border-b border-slate-50 text-slate-700 text-xs ${type}`;
-            entry.innerHTML = html;
-            logBox.appendChild(entry);
-            logBox.scrollTop = logBox.scrollHeight;
+            entry.innerHTML = html; logBox.appendChild(entry); logBox.scrollTop = logBox.scrollHeight;
         }
 
         function refreshScoreboard() {
@@ -243,7 +216,6 @@
         function updateAnalysisTable(step, data, comp, swap, isDoneState = false) {
             const body = document.getElementById('analysisBody');
             const tr = document.createElement('tr');
-            
             let tagHtml = `<span class="step-tag">${step}패스</span>`;
             if (step === '시작') tagHtml = `<span class="step-tag !bg-slate-700 !text-white">시작상태</span>`;
             if (isDoneState) tagHtml = `<span class="done-tag">최종 완료</span>`;
@@ -253,14 +225,11 @@
                 return v;
             }).join(', ');
 
-            const compDisplay = isDoneState ? `- (총 ${globalComp}회)` : `${comp}회 <span class="text-slate-400 text-[11px]">(${globalComp})</span>`;
-            const swapDisplay = isDoneState ? `- (총 ${globalSwap}회)` : `${swap}회 <span class="text-slate-400 text-[11px]">(${globalSwap})</span>`;
-
             tr.innerHTML = `
                 <td>${tagHtml}</td>
                 <td class="font-mono font-bold text-slate-700">[ ${rowData} ]</td>
-                <td class="text-amber-600 font-bold">${compDisplay}</td>
-                <td class="text-blue-600 font-bold">${swapDisplay}</td>
+                <td class="text-amber-600 font-bold">${isDoneState ? `-` : comp + '회'} <span class="text-slate-400 text-[11px]">(${globalComp})</span></td>
+                <td class="text-blue-600 font-bold">${isDoneState ? `-` : swap + '회'} <span class="text-slate-400 text-[11px]">(${globalSwap})</span></td>
             `;
             body.prepend(tr);
         }
@@ -270,159 +239,134 @@
             stage.querySelectorAll('.card-visual, .slot').forEach(c => c.remove());
             cardElements = [];
             
-            const count = parseInt(document.getElementById('cardCountRange').value);
+            const isCustom = document.getElementById('customCheck').checked;
+            const textThemeClass = isRedSuit(currentSuit) ? 'theme-red' : 'theme-black';
             let nums = [];
 
-            if (count === 5) {
-                nums = [8, 4, 1, 9, 7];
-            } else {
-                let basePool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-                for (let i = basePool.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [basePool[i], basePool[j]] = [basePool[j], basePool[i]];
+            if (isCustom) {
+                const rawInput = document.getElementById('customInput').value;
+                nums = rawInput.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                if (nums.length === 0) return;
+
+                if (new Set(nums).size !== nums.length) {
+                    alert('⚠️ 중복된 숫자가 존재합니다. 서로 다른 숫자를 입력해주세요!');
+                    document.getElementById('logBox').innerHTML = '<div class="text-red-500 font-bold">⚠️ 오류: 중복 데이터 감지됨.</div>';
+                    return;
                 }
-                nums = basePool.slice(0, count);
+            } else {
+                const count = parseInt(document.getElementById('cardCountRange').value);
+                if (count === 5) nums = [8, 4, 1, 9, 7];
+                else {
+                    let pool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                    pool.sort(() => Math.random() - 0.5);
+                    nums = pool.slice(0, count);
+                }
             }
 
-            const totalWidth = stage.offsetWidth;
-            gap = Math.min(95, (totalWidth - 100) / count);
-            startX = (totalWidth - (gap * (count - 1) + 70)) / 2;
+            const count = nums.length;
+            gap = Math.min(95, (stage.offsetWidth - 100) / count);
+            startX = (stage.offsetWidth - (gap * (count - 1) + 70)) / 2;
 
             nums.forEach((val, i) => {
                 const slot = document.createElement('div');
-                slot.className = 'slot';
-                slot.style.left = `${startX + (i * gap)}px`;
+                slot.className = 'slot'; slot.style.left = `${startX + (i * gap)}px`;
                 stage.appendChild(slot);
 
                 const card = document.createElement('div');
-                card.className = 'card-visual';
-                card.style.left = `${startX + (i * gap)}px`;
+                card.className = `card-visual ${textThemeClass}`; card.style.left = `${startX + (i * gap)}px`;
                 card.innerHTML = `
-                    <div class="card-suit text-left">${suit}</div>
+                    <div class="card-suit text-left">${currentSuit}</div>
                     <div class="card-val">${val}</div>
-                    <div class="card-suit text-right" style="transform: rotate(180deg)">${suit}</div>
+                    <div class="card-suit flex justify-end">${currentSuit}</div>
                 `;
                 stage.appendChild(card);
                 cardElements.push({ val, el: card });
             });
+            document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">정렬 대기 중...</div>';
         }
 
-        function handlePause() {
+        async function handlePause() {
             if (!isRunning || isPaused) return;
-            isPaused = true;
-            document.getElementById('pauseBtn').disabled = true;
-            document.getElementById('startBtn').innerText = '재시작';
-            document.getElementById('startBtn').disabled = false;
-            addLog('🛑 <b>정렬 일시중지됨</b>', 'text-amber-600 font-bold');
+            isPaused = true; document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('startBtn').innerText = '재시작'; document.getElementById('startBtn').disabled = false;
         }
 
         function handleReset() {
-            isRunning = false; isPaused = false;
-            if (pauseResolve) { pauseResolve(); pauseResolve = null; }
-            passCount = 0; globalComp = 0; globalSwap = 0;
-            sortedIndices.clear();
-
+            isRunning = false; isPaused = false; if (pauseResolve) pauseResolve();
+            passCount = 0; globalComp = 0; globalSwap = 0; sortedIndices.clear();
             refreshScoreboard();
-            document.getElementById('startBtn').innerText = '시작';
-            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').innerText = '시작'; document.getElementById('startBtn').disabled = false;
             document.getElementById('pauseBtn').disabled = true;
-            document.getElementById('cardCountRange').disabled = false;
+            document.getElementById('customCheck').disabled = false; document.getElementById('cardCountRange').disabled = false;
+            document.getElementById('customInput').disabled = false;
+            document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = false);
             document.getElementById('analysisBody').innerHTML = '';
             resetStage();
-            document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">초기화 되었습니다.</div>';
         }
 
         async function handleStart() {
             if (isRunning && isPaused) {
-                isPaused = false;
-                document.getElementById('startBtn').disabled = true;
-                document.getElementById('pauseBtn').disabled = false;
-                addLog('▶️ <b>정렬 재개</b>', 'text-emerald-600 font-bold');
-                if (pauseResolve) pauseResolve();
-                return;
+                isPaused = false; document.getElementById('startBtn').disabled = true; document.getElementById('pauseBtn').disabled = false;
+                if (pauseResolve) pauseResolve(); return;
             }
-
             if (isRunning) return;
-            isRunning = true; isPaused = false;
-            passCount = 0; globalComp = 0; globalSwap = 0;
-            sortedIndices.clear();
-            
+
+            isRunning = true; isPaused = false; passCount = 0; globalComp = 0; globalSwap = 0; sortedIndices.clear();
             refreshScoreboard();
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('pauseBtn').disabled = false;
-            document.getElementById('cardCountRange').disabled = true;
+            document.getElementById('startBtn').disabled = true; document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('customCheck').disabled = true; document.getElementById('cardCountRange').disabled = true;
+            document.getElementById('customInput').disabled = true;
+            document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = true);
             document.getElementById('analysisBody').innerHTML = '';
             
             document.getElementById('logBox').innerHTML = `<div class="log-header">🚀 버블 정렬 시작</div>`;
-            updateAnalysisTable('시작', cardElements.map(c => c.val), 0, 0, false);
+            updateAnalysisTable('시작', cardElements.map(c => c.val), 0, 0);
             
             await new Promise(r => setTimeout(r, 600));
             await bubbleSort();
             
             if (isRunning) { 
                 cardElements.forEach(c => { c.el.className = 'card-visual sorted'; });
-                addLog('🎊 <b>모든 데이터 정렬 완료 및 확정!</b>', 'log-header !text-emerald-600 font-black');
+                addLog('🎊 <b>정렬 완료!</b>', 'log-header !text-emerald-600');
                 updateAnalysisTable('완료', cardElements.map(c => c.val), 0, 0, true);
-
                 isRunning = false;
-                document.getElementById('startBtn').innerText = '시작';
-                document.getElementById('startBtn').disabled = true;
+                document.getElementById('startBtn').innerText = '시작'; document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = true;
-                document.getElementById('cardCountRange').disabled = false;
+                document.getElementById('customCheck').disabled = false; document.getElementById('cardCountRange').disabled = false;
+                document.getElementById('customInput').disabled = false;
+                document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = false);
             }
         }
 
         async function bubbleSort() {
             const n = cardElements.length;
-            
             for (let pass = 0; pass < n - 1; pass++) {
                 passCount++;
-                addLog(`📂 <b>[제 ${passCount}회차 패스]</b> 인덱스 0부터 ${n - pass - 2}까지 차례로 대조`, 'log-header');
+                addLog(`📂 <b>[제 ${passCount}회차 패스]</b>`, 'log-header');
                 let stepComp = 0; let stepSwap = 0;
 
                 for (let i = 0; i < n - pass - 1; i++) {
                     await checkPause(); if (!isRunning) return;
-                    
-                    // 1단계: 부드러운 비교 시각화 (스카이 블루 하이라이트)
-                    cardElements[i].el.classList.add('comparing');
-                    cardElements[i+1].el.classList.add('comparing');
-                    
+                    cardElements[i].el.classList.add('comparing'); cardElements[i+1].el.classList.add('comparing');
                     stepComp++; globalComp++; refreshScoreboard();
-                    addLog(`👀 대조: 값 [${cardElements[i].val}] vs [${cardElements[i+1].val}]`);
-                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                    addLog(`👀 대조: [${cardElements[i].val}] vs [${cardElements[i+1].val}]`);
+                    await new Promise(r => setTimeout(r, getDelay() * 0.35));
 
-                    // 2단계: 크기 판단 후 교환 시각화 진입
                     if (cardElements[i].val > cardElements[i+1].val) {
-                        // 대조 클래스 지우고 소프트 레드 교환 클래스(확대)로 전환
-                        cardElements[i].el.classList.remove('comparing');
-                        cardElements[i+1].el.classList.remove('comparing');
-                        cardElements[i].el.classList.add('swapping');
-                        cardElements[i+1].el.classList.add('swapping');
-                        
+                        cardElements[i].el.classList.remove('comparing'); cardElements[i+1].el.classList.remove('comparing');
+                        cardElements[i].el.classList.add('swapping'); cardElements[i+1].el.classList.add('swapping');
                         stepSwap++; globalSwap++; refreshScoreboard();
-                        addLog(`🔄 <b class="text-red-500">위치 교환</b>: [${cardElements[i].val}]이 크므로 우측 슬라이드`);
-                        
-                        // 물리적 위치 변경 실행
+                        addLog(`🔄 위치 교환: [${cardElements[i].val}] > [${cardElements[i+1].val}]`);
                         await swap(i, i + 1);
-                        
-                        // 이동 완료 후 교환 상태 제거
-                        cardElements[i].el.classList.remove('swapping');
-                        cardElements[i+1].el.classList.remove('swapping');
+                        cardElements[i].el.classList.remove('swapping'); cardElements[i+1].el.classList.remove('swapping');
                     } else {
-                        // 교환이 없다면 그냥 비교 하이라이트 해제
-                        cardElements[i].el.classList.remove('comparing');
-                        cardElements[i+1].el.classList.remove('comparing');
+                        cardElements[i].el.classList.remove('comparing'); cardElements[i+1].el.classList.remove('comparing');
                     }
-                    
-                    await new Promise(r => setTimeout(r, getDelay() * 0.2));
+                    await new Promise(r => setTimeout(r, getDelay() * 0.15));
                 }
-                
-                // 패스 종료 시 우측 확정 처리 (초록색)
                 let fixedIdx = n - pass - 1;
-                cardElements[fixedIdx].el.classList.add('sorted');
+                cardElements[fixedIdx].el.className = 'card-visual sorted';
                 sortedIndices.add(fixedIdx);
-                addLog(`🎯 <b>자리 확정</b>: 인덱스 ${fixedIdx}번에 [${cardElements[fixedIdx].val}] 안착 완료!`, 'text-emerald-600 font-bold');
-                
                 updateAnalysisTable(passCount, cardElements.map(c => c.val), stepComp, stepSwap);
                 await new Promise(r => setTimeout(r, getDelay() * 0.4));
             }
@@ -430,15 +374,22 @@
         }
 
         async function swap(idx1, idx2) {
-            let obj1 = cardElements[idx1];
-            let obj2 = cardElements[idx2];
-            obj1.el.style.left = `${startX + (idx2 * gap)}px`;
-            obj2.el.style.left = `${startX + (idx1 * gap)}px`;
+            let obj1 = cardElements[idx1]; let obj2 = cardElements[idx2];
+            
+            // 💡 뚝뚝 끊기는 프레임 드롭을 방지하기 위해 다음 렌더링 주기에 맞추어 위치를 연산하도록 보정합니다.
+            await new Promise(resolve => requestAnimationFrame(() => {
+                obj1.el.style.left = `${startX + (idx2 * gap)}px`; 
+                obj2.el.style.left = `${startX + (idx1 * gap)}px`;
+                resolve();
+            }));
+            
             [cardElements[idx1], cardElements[idx2]] = [cardElements[idx2], cardElements[idx1]];
-            await new Promise(r => setTimeout(r, getDelay()));
+            
+            // 💡 카드가 지정된 궤적에 도달하는 모션이 끝난 뒤 코드가 흐르도록 딜레이 박자를 최적화합니다.
+            await new Promise(r => setTimeout(r, getDelay() * 0.75));
         }
 
-        window.onload = () => { changeSpeed(); resetStage(); };
+        window.onload = () => { updateSuitButtons(); changeSpeed(); resetStage(); };
         window.onresize = resetStage;
     </script>
 </body>
