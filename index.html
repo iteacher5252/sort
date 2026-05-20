@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알고리즘 정렬 시뮬레이터 포털</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800;900&display=swap');
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background-color: #f1f5f9; 
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+    <header class="w-full bg-white border-b border-slate-200/80 py-10 px-6 text-center shadow-sm mb-6">
+        <div class="max-w-5xl w-full mx-auto">
+            <span class="text-xs font-extrabold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full uppercase tracking-wider">GitHub Pages Portal</span>
+            <h1 class="text-3xl font-black text-slate-900 mt-3 mb-2 tracking-tight">🃏 알고리즘 정렬 시뮬레이터</h1>
+            <p class="text-slate-500 text-sm font-medium">시각화 애니메이션으로 쉽게 배우는 대표적인 정렬 알고리즘 3종</p>
+        </div>
+    </header>
+
+    <main class="max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mb-8 flex-grow">
+        
+        <a href="./삽입정렬_v1.html" class="group bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between min-h-[260px]">
+            <div>
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300 mb-5">
+                    📥
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-800 mb-2 flex items-center gap-1.5">
+                    삽입 정렬
+                    <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Insertion</span>
+                </h2>
+                <p class="text-slate-500 text-xs leading-relaxed font-medium">
+                    정렬된 앞부분과 비교하여 자신의 위치를 찾아 '삽입'하는 방식입니다. 카드를 리프팅하고 밀어내는 부드러운 단계를 직접 확인해보세요.
+                </p>
+            </div>
+            <div class="mt-6 flex items-center text-xs font-extrabold text-indigo-600 group-hover:text-indigo-700">
+                시뮬레이터 이동 <span class="ml-1 transform group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+        </a>
+
+        <a href="./버블정렬_v1.html" class="group bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between min-h-[260px]">
+            <div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300 mb-5">
+                    🫧
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-800 mb-2 flex items-center gap-1.5">
+                    버블 정렬
+                    <span class="text-xs font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md">Bubble</span>
+                </h2>
+                <p class="text-slate-500 text-xs leading-relaxed font-medium">
+                    인접한 두 원소를 비교하며 순차적으로 위치를 '교환'하는 방식입니다. 거품이 위로 올라오듯 큰 값이 우측으로 안착하는 과정을 시각화합니다.
+                </p>
+            </div>
+            <div class="mt-6 flex items-center text-xs font-extrabold text-indigo-600 group-hover:text-indigo-700">
+                시뮬레이터 이동 <span class="ml-1 transform group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+        </a>
+
+        <a href="./퀵정렬_v1.html" class="group bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between min-h-[260px]">
+            <div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300 mb-5">
+                    ⚡
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-800 mb-2 flex items-center gap-1.5">
+                    퀵 정렬
+                    <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Quick</span>
+                </h2>
+                <p class="text-slate-500 text-xs leading-relaxed font-medium">
+                    피벗(기준)을 설정하고 이를 기준으로 작은 값과 큰 값을 분할(Divide & Conquer)하여 고속으로 정렬하는 강력한 방식입니다.
+                </p>
+            </div>
+            <div class="mt-6 flex items-center text-xs font-extrabold text-indigo-600 group-hover:text-indigo-700">
+                시뮬레이터 이동 <span class="ml-1 transform group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+        </a>
+
+    </main>
+
+    <footer class="text-center text-xs text-slate-400 font-bold mb-6">
+        <p>© 2026 정렬 알고리즘 시뮬레이터 프로젝트. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
