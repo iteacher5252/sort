@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>퀵 정렬 시뮬레이터 (우하단 문양 정렬판)</title>
+    <title>퀵 정렬: 통합 마스터 v5.5 (L/R 선택 피드백 완벽 동기화판)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
@@ -12,44 +12,52 @@
         
         .stage { background: #0f172a; border-radius: 3rem; height: 420px; position: relative; width: 100%; max-width: 1000px; margin: 0 auto; overflow: hidden; box-shadow: inset 0 0 60px rgba(0,0,0,0.6); }
         
-        /* 💡 카드의 움직임을 버터처럼 부드럽게 만들기 위해 하드웨어 가속 지정 및 가로/세로 이동 곡선 최적화 */
+        /* 💡 카드의 기본 비주얼 템플릿 */
         .card-visual { 
             width: 70px; height: 100px; background: white; border-radius: 12px; 
             display: flex; flex-direction: column; justify-content: space-between; padding: 8px; font-weight: 900; 
             position: absolute; bottom: 130px; 
             will-change: left, transform, background-color, border-color;
-            transform: translate3d(0, 0, 0);
             transition: transform var(--speed) cubic-bezier(0.25, 1, 0.5, 1), 
-                        left var(--speed) cubic-bezier(0.25, 1, 0.5, 1), 
-                        background-color 0.4s ease; 
+                        left var(--speed) cubic-bezier(0.34, 1.56, 0.64, 1), 
+                        background-color 0.4s ease, border-color 0.4s ease; 
             border: 2px solid #e2e8f0; box-shadow: 0 10px 15px rgba(0,0,0,0.3); z-index: 10; 
         }
         
         .card-val { font-size: 1.5rem; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
         .card-suit { font-size: 11px; line-height: 1; font-weight: bold; }
         
+        /* 트럼프 카드 커스텀 테마 색상 */
         .theme-red { color: #ef4444 !important; border-color: #fca5a5 !important; }
         .theme-black { color: #1e293b !important; border-color: #cbd5e1 !important; }
         
-        /* 💡 L, R 포인터도 뚝뚝 끊기지 않고 부드럽게 미끄러지도록 트랜지션 곡선 수정 */
+        /* 포인터 기본 스타일 */
         .pointer { 
             position: absolute; bottom: 85px; width: 32px; text-align: center; font-weight: 800; font-size: 12px; 
-            will-change: left, opacity;
-            transition: left var(--speed) cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease; 
-            z-index: 100; padding: 2px 0; border-radius: 6px; background: rgba(255, 255, 255, 0.1); visibility: hidden; 
+            will-change: left;
+            transition: all var(--speed) ease; 
+            z-index: 100; padding: 2px 0; border-radius: 6px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(1px); visibility: hidden; 
         }
-        #pointerL { color: #3b82f6; border: 2px solid #3b82f6; transform: translateX(19px); }
-        #pointerR { color: #ef4444; border: 2px solid #ef4444; transform: translateX(19px); }
+        #pointerL { color: #3b82f6; border: 2px solid #3b82f6; transform: translateX(3px); }
+        #pointerR { color: #ef4444; border: 2px solid #ef4444; transform: translateX(33px); }
         
-        /* 세로 리프팅 시 뚝뚝 끊기는 현상을 방지하기 위해 translate3d 가속 적용 */
-        .pivot { transform: translate3d(0, -160px, 0) scale(1.05) !important; z-index: 150 !important; border-color: #ef4444 !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
-        .comparing { transform: translate3d(0, -20px, 0); box-shadow: 0 0 25px rgba(255, 255, 255, 0.8); }
-        .stop-here { transform: translate3d(0, -35px, 0) scale(1.02); border-color: #3b82f6 !important; box-shadow: 0 0 25px rgba(59, 130, 246, 0.7); }
-        .stop-here-R { transform: translate3d(0, -35px, 0) scale(1.02); border-color: #ef4444 !important; box-shadow: 0 0 25px rgba(239, 68, 68, 0.7); }
-        .single-check { transform: translate3d(0, -40px, 0) scale(1.05); border-color: #eab308 !important; box-shadow: 0 0 30px rgba(234, 179, 8, 0.8); z-index: 120 !important; }
-        .sorted { background: #d1fae5 !important; color: #059669 !important; border-color: #10b981 !important; transform: translate3d(0, 0, 0) scale(1) !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        /* 🚀 실시간 애니메이션 상태 정의 클래스 */
+        .pivot { transform: translateY(-160px) scale(1.05) !important; z-index: 150 !important; border-color: #ef4444 !important; box-shadow: 0 0 35px rgba(239, 68, 68, 0.6) !important; }
+        
+        /* [조사 중] 위로 살짝 들리는 스캔 상태 */
+        .comparing-L { transform: translateY(-20px); border-color: #3b82f6 !important; border-width: 3px !important; box-shadow: 0 0 25px rgba(59, 130, 246, 0.6); }
+        .comparing-R { transform: translateY(-20px); border-color: #ef4444 !important; border-width: 3px !important; box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+        
+        /* [선택/정지 완료] 조건을 만족하여 더 높이 들리며 배경과 테두리를 명확히 굳히는 상태 */
+        .stop-here { transform: translateY(-35px) scale(1.04); background-color: #eff6ff !important; border-color: #3b82f6 !important; border-width: 3px !important; color: #1e40af !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); z-index: 40; }
+        .stop-here-R { transform: translateY(-35px) scale(1.04); background-color: #fef2f2 !important; border-color: #ef4444 !important; border-width: 3px !important; color: #991b1b !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); z-index: 40; }
+        
+        .single-check { transform: translateY(-40px) scale(1.05); border-color: #eab308 !important; box-shadow: 0 0 30px rgba(234, 179, 8, 0.8); z-index: 120 !important; }
+        .sorted { background: #d1fae5 !important; color: #059669 !important; border-color: #10b981 !important; transform: translateY(0) scale(1) !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-width: 2px !important; }
         
         .slot { position: absolute; width: 70px; height: 100px; bottom: 130px; border: 2px dashed #334155; border-radius: 12px; z-index: 1; }
+        
+        /* 📂 v1 문서의 세련된 보라색 테마 로그 박스 원본 복원 */
         .log-box { font-size: 13px; height: 420px; overflow-y: auto; background: white; padding: 20px; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); scroll-behavior: smooth; }
         .log-header { font-weight: 800; color: #6b21a8; margin-top: 10px; border-bottom: 2px solid #f3e8ff; padding-bottom: 4px; }
         
@@ -57,6 +65,7 @@
         .analysis-table th { background: #f8fafc; color: #64748b; font-weight: 700; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: center; }
         .analysis-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center; }
         .step-tag { background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
+        .done-tag { background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
         .val-pivot { color: #ef4444; font-weight: 900; background: #fef2f2; padding: 2px 6px; border-radius: 4px; }
         .val-sorted { color: #10b981; font-weight: 800; }
     </style>
@@ -65,8 +74,8 @@
     <div class="max-w-[1300px] mx-auto">
         <header class="mb-8 bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
             <div>
-                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 퀵 정렬 시뮬레이터</h1>
-                <p class="text-slate-500 text-sm">트럼프 대각 레이아웃 (좌상단 문양 - 중앙 숫자 - 우하단 문양)</p>
+                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 퀵 정렬 통합 마스터 v5.5</h1>
+                <p class="text-slate-500 text-sm">트럼프 대각 레이아웃 (L/R 선택 상태 고정 피드백 완벽 동기화판)</p>
             </div>
             <div class="flex flex-wrap items-center gap-4 bg-slate-50 p-4 rounded-2xl w-full xl:w-auto">
                 <div class="flex gap-4 border-r border-slate-200 pr-4 text-center">
@@ -108,7 +117,7 @@
 
                 <div class="flex flex-col gap-1">
                     <span class="text-[10px] font-bold text-slate-400">정렬 속도: <span id="speedVal" class="text-purple-600">느리게 (1600ms)</span></span>
-                    <input type="range" id="speedRange" min="600" max="1600" step="50" value="1600" oninput="changeSpeed()" class="w-28 accent-purple-600">
+                    <input type="range" id="speedRange" min="600" max="2200" step="100" value="1600" oninput="changeSpeed()" class="w-28 accent-purple-600">
                 </div>
                 <div class="flex gap-1.5 pt-2">
                     <button id="startBtn" onclick="handleStart()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md">시작</button>
@@ -135,8 +144,8 @@
                     <tr>
                         <th width="120">분할 회차</th>
                         <th>배열 데이터 상태</th>
-                        <th width="140">회차별 비교</th>
-                        <th width="140">회차별 교환</th>
+                        <th width="140">회차별 비교 (누적)</th>
+                        <th width="140">회차별 교환 (누적)</th>
                     </tr>
                 </thead>
                 <tbody id="analysisBody"></tbody>
@@ -182,12 +191,11 @@
         function changeSpeed() {
             const delay = getDelay();
             const textEl = document.getElementById('speedVal');
-            if(delay >= 1400) textEl.innerText = `느리게 (${delay}ms)`;
-            else if(delay >= 950) textEl.innerText = `기본 (${delay}ms)`;
+            if(delay >= 1800) textEl.innerText = `느리게 (${delay}ms)`;
+            else if(delay >= 1200) textEl.innerText = `기본 (${delay}ms)`;
             else textEl.innerText = `빠르게 (${delay}ms)`;
             
-            // 💡 지연 타이머(setTimeout) 시간과 부드럽게 매칭되도록 애니메이션 트랜지션 비율을 정밀하게 조정 (65% 매칭)
-            document.documentElement.style.setProperty('--speed', `${delay * 0.65}ms`);
+            document.documentElement.style.setProperty('--speed', `${delay * 0.4}ms`);
         }
 
         function toggleInputMode() {
@@ -229,12 +237,14 @@
             document.getElementById('totalSwapScore').innerText = globalSwap;
         }
 
+        /* 📊 v1 원본의 독립 회차별 표기 방식 및 누적 괄호 표기 동기화 */
         function updateAnalysisTable(step, data, comp, swap, pivotIdx, isDoneState = false) {
             const body = document.getElementById('analysisBody');
             const tr = document.createElement('tr');
+            
             let tagHtml = `<span class="step-tag">${step}회차</span>`;
-            if (step === '시작') tagHtml = `<span class="step-tag !bg-slate-700 !text-white">시작</span>`;
-            if (isDoneState) tagHtml = `<span class="done-tag">완료</span>`;
+            if (step === '시작') tagHtml = `<span class="step-tag !bg-slate-700 !text-white">시작상태</span>`;
+            if (isDoneState) tagHtml = `<span class="done-tag">최종 완료</span>`;
 
             const rowData = data.map((v, idx) => {
                 if (!isDoneState && idx === pivotIdx) return `<span class="val-pivot">${v}</span>`;
@@ -242,11 +252,14 @@
                 return v;
             }).join(', ');
 
+            const compDisplay = isDoneState ? `- (총 ${globalComp}회)` : `${comp}회 <span class="text-slate-400 text-[11px]">(${globalComp})</span>`;
+            const swapDisplay = isDoneState ? `- (총 ${globalSwap}회)` : `${swap}회 <span class="text-slate-400 text-[11px]">(${globalSwap})</span>`;
+
             tr.innerHTML = `
                 <td>${tagHtml}</td>
                 <td class="font-mono font-bold text-slate-700">[ ${rowData} ]</td>
-                <td class="text-amber-600 font-bold">${comp}회</td>
-                <td class="text-blue-600 font-bold">${swap}회</td>
+                <td class="text-amber-600 font-bold">${compDisplay}</td>
+                <td class="text-blue-600 font-bold">${swapDisplay}</td>
             `;
             body.prepend(tr);
         }
@@ -264,7 +277,7 @@
                 nums = document.getElementById('customInput').value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
                 if (nums.length === 0) return;
                 if (new Set(nums).size !== nums.length) {
-                    alert('⚠️ 중복된 숫자가 존재합니다. 서로 다른 숫자를 입력해주세요!');
+                    alert('⚠️ 중복된 숫자가 존재합니다. 서로 다른 숫자가 입력해주세요!');
                     return;
                 }
             } else {
@@ -291,10 +304,11 @@
                 card.innerHTML = `
                     <div class="card-suit text-left">${currentSuit}</div>
                     <div class="card-val">${val}</div>
-                    <div class="card-suit flex justify-end">${currentSuit}</div>
+                    <div class="card-suit flex justify-end" style="transform: rotate(180deg)">${currentSuit}</div>
                 `;
                 stage.appendChild(card);
-                cardElements.push({ val, el: card });
+                
+                cardElements.push({ val, el: card, themeClass: textThemeClass, originalIdx: i });
             });
             hidePointers();
             document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">정렬 대기 중...</div>';
@@ -315,6 +329,7 @@
             if (!isRunning || isPaused) return;
             isPaused = true; document.getElementById('pauseBtn').disabled = true;
             document.getElementById('startBtn').innerText = '재시작'; document.getElementById('startBtn').disabled = false;
+            addLog('🛑 <b>정렬 일시중지됨</b>', 'text-amber-600 font-bold');
         }
 
         function handleReset() {
@@ -328,11 +343,13 @@
             document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = false);
             document.getElementById('analysisBody').innerHTML = '';
             resetStage();
+            document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">초기화 되었습니다.</div>';
         }
 
         async function handleStart() {
             if (isRunning && isPaused) {
                 isPaused = false; document.getElementById('startBtn').disabled = true; document.getElementById('pauseBtn').disabled = false;
+                addLog('▶️ <b>정렬 재개</b>', 'text-emerald-600 font-bold');
                 if (pauseResolve) pauseResolve(); return;
             }
             if (isRunning) return;
@@ -344,16 +361,18 @@
             document.getElementById('customInput').disabled = true;
             document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = true);
             
-            document.getElementById('logBox').innerHTML = '<div class="log-header">🚀 퀵 정렬을 시작합니다!</div>';
+            document.getElementById('logBox').innerHTML = '<div class="log-header">🚀 퀵 정렬 시뮬레이션 시작</div>';
             updateAnalysisTable('시작', cardElements.map(c => c.val), 0, 0, -1);
             
             await new Promise(r => setTimeout(r, 600));
             await quickSort(0, cardElements.length - 1);
             
             if (isRunning) { 
-                cardElements.forEach(c => { c.el.className = 'card-visual sorted'; });
+                cardElements.forEach(c => { 
+                    c.el.className = 'card-visual sorted';
+                });
                 hidePointers();
-                addLog('🎊 <b>모든 카드의 정렬이 완료되었습니다!</b>', 'log-header !text-emerald-600');
+                addLog('🎊 <b>모든 구역 정렬 완료 및 확정!</b>', 'log-header !text-emerald-600 font-black');
                 updateAnalysisTable('완료', cardElements.map(c => c.val), 0, 0, -1, true);
                 isRunning = false;
                 document.getElementById('startBtn').innerText = '시작'; document.getElementById('startBtn').disabled = true;
@@ -370,10 +389,11 @@
                 await checkPause(); if (!isRunning) return;
                 await movePointer('pointerL', low); await movePointer('pointerR', low);
                 cardElements[low].el.classList.add('single-check');
-                addLog(`🔍 남은 카드가 1개이므로 위치가 자동으로 확정되었습니다.`);
+                addLog(`🔍 <b>[단일 원소 발견]</b> 인덱스 ${low} (값: ${cardElements[low].val}) 구역 자동 확정`, 'text-yellow-600 font-semibold');
                 await new Promise(r => setTimeout(r, getDelay()));
                 cardElements[low].el.className = 'card-visual sorted';
-                sortedIndices.add(low); hidePointers(); return;
+                sortedIndices.add(cardElements[low].originalIdx); 
+                hidePointers(); return;
             }
             if (low > high) return;
             let pivotIdx = await partition(low, high);
@@ -382,60 +402,101 @@
             await quickSort(pivotIdx + 1, high);
         }
 
-        /* 💡 메인 퀵 정렬 로직 및 쉬운 언어로 정비된 로그 시스템 */
+        /* 🛠️ v1의 로그 스타일과 강조 효과를 결합하여 완벽 리팩토링된 분할 함수 */
         async function partition(low, high) {
             let pivotObj = cardElements[low]; let pivotVal = pivotObj.val;
-            pivotObj.el.classList.add('pivot'); pCount++;
-            addLog(`📂 <b>[정렬 구역 선택]</b> 범위 내 첫 카드 [${pivotVal}]를 기준(피벗)으로 삼습니다.`, 'log-header');
+            pivotObj.el.className = `card-visual ${pivotObj.themeClass} pivot`; pCount++;
+            
+            addLog(`📂 <b>[제 ${pCount}회차 분할 구역]</b> 인덱스 ${low} ~ ${high} 설정 (피벗: ${pivotVal})`, 'log-header');
 
             let i = low + 1; let j = high; let stepComp = 0; let stepSwap = 0;
+            let leftStopped = false; let rightStopped = false;
 
             await movePointer('pointerL', i); await movePointer('pointerR', j);
             await new Promise(r => setTimeout(r, getDelay()));
 
             while (i <= j) {
-                // L 포인터 이동 (큰 수 탐색)
-                while (i <= high) {
-                    await checkPause(); if (!isRunning) return;
-                    await movePointer('pointerL', i); cardElements[i].el.classList.add('comparing');
-                    stepComp++; globalComp++; refreshScoreboard();
-                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
-                    if (cardElements[i].val > pivotVal) {
-                        addLog(`🔵 L 정찰팀 멈춤: 기준값 [${pivotVal}]보다 큰 카드 [${cardElements[i].val}] 발견`);
-                        cardElements[i].el.className = 'card-visual stop-here'; break;
+                // 🔴 L 포인터 이동 (큰 수 탐색)
+                if (!leftStopped) {
+                    while (i <= high) {
+                        await checkPause(); if (!isRunning) return;
+                        await movePointer('pointerL', i); 
+                        
+                        cardElements[i].el.className = `card-visual ${cardElements[i].themeClass} comparing-L`;
+                        stepComp++; globalComp++; refreshScoreboard();
+                        
+                        addLog(`🔴 L 포인터 조사: 인덱스 ${i} (값: ${cardElements[i].val})`);
+                        await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                        
+                        if (cardElements[i].val > pivotVal) {
+                            addLog(`⚠️ <b>L 정지</b>: 값 [${cardElements[i].val}]이 피벗(${pivotVal})보다 크므로 탐색을 멈춥니다!`, 'text-blue-600 font-semibold');
+                            cardElements[i].el.className = `card-visual ${cardElements[i].themeClass} stop-here`; 
+                            leftStopped = true;
+                            await new Promise(r => setTimeout(r, getDelay() * 0.5));
+                            break;
+                        }
+                        cardElements[i].el.className = `card-visual ${cardElements[i].themeClass}`; i++;
                     }
-                    cardElements[i].el.classList.remove('comparing'); i++;
                 }
-                // R 포인터 이동 (작은 수 탐색)
-                while (j > low) {
-                    await checkPause(); if (!isRunning) return;
-                    await movePointer('pointerR', j); cardElements[j].el.classList.add('comparing');
-                    stepComp++; globalComp++; refreshScoreboard();
-                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
-                    if (cardElements[j].val < pivotVal) {
-                        addLog(`🔴 R 정찰팀 멈춤: 기준값 [${pivotVal}]보다 작은 카드 [${cardElements[j].val}] 발견`);
-                        cardElements[j].el.className = 'card-visual stop-here-R'; break;
+                
+                // 🔵 R 포인터 이동 (작은 수 탐색)
+                if (!rightStopped) {
+                    while (j > low) {
+                        await checkPause(); if (!isRunning) return;
+                        await movePointer('pointerR', j); 
+                        
+                        cardElements[j].el.className = `card-visual ${cardElements[j].themeClass} comparing-R`;
+                        stepComp++; globalComp++; refreshScoreboard();
+                        
+                        addLog(`🔵 R 포인터 조사: 인덱스 ${j} (값: ${cardElements[j].val})`);
+                        await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                        
+                        if (cardElements[j].val < pivotVal) {
+                            addLog(`⚠️ <b>R 정지</b>: 값 [${cardElements[j].val}]이 피벗(${pivotVal})보다 작으므로 탐색을 멈춥니다!`, 'text-red-600 font-semibold');
+                            // 🌟 대기 흐름에서 선택 피드백이 무너지지 않도록 완전히 분리 고정
+                            cardElements[j].el.className = `card-visual ${cardElements[j].themeClass} stop-here-R`; 
+                            rightStopped = true;
+                            await new Promise(r => setTimeout(r, getDelay() * 0.5));
+                            break;
+                        }
+                        cardElements[j].el.className = `card-visual ${cardElements[j].themeClass}`; j--;
                     }
-                    cardElements[j].el.classList.remove('comparing'); j--;
                 }
-                // L과 R이 가리키는 카드의 위치 맞교환
-                if (i < j) {
+                
+                // 교환 발생 처리
+                if (i < j && leftStopped && rightStopped) {
                     await checkPause(); if (!isRunning) return;
                     stepSwap++; globalSwap++; refreshScoreboard();
-                    addLog(`🔄 발견된 두 카드의 자리를 바꿉니다: [${cardElements[i].val}] ↔ [${cardElements[j].val}]`);
-                    cardElements[i].el.classList.remove('stop-here'); cardElements[j].el.classList.remove('stop-here-R');
+                    addLog(`🔄 <b>교환 발생</b>: L의 정지값 [${cardElements[i].val}] ↔ R의 정지값 [${cardElements[j].val}]`);
+                    
+                    cardElements[i].el.className = `card-visual ${cardElements[i].themeClass}`; 
+                    cardElements[j].el.className = `card-visual ${cardElements[j].themeClass}`;
                     await swap(i, j);
+                    
+                    // 스왑 완료 후 정지 플래그 초기화
+                    leftStopped = false; rightStopped = false;
+                } else {
+                    break;
                 }
             }
             await checkPause(); if (!isRunning) return;
-            if (cardElements[i]) cardElements[i].el.className = 'card-visual';
-            if (cardElements[j]) cardElements[j].el.className = 'card-visual';
+            
+            // 루프 완료 후 연산 스타일 깔끔하게 클리어 정리
+            for(let k = low; k <= high; k++) {
+                if (cardElements[k] && k !== low && !sortedIndices.has(cardElements[k].originalIdx)) {
+                    cardElements[k].el.className = `card-visual ${cardElements[k].themeClass}`;
+                }
+            }
 
-            // 탐색이 완료된 후 기준 카드와 R이 마지막에 머문 카드의 위치 최종 교환
-            addLog(`🏁 조사가 끝났으므로 기준 카드 [${pivotVal}]와 R팀이 멈춘 카드 [${cardElements[j].val}]의 자리를 바꿉니다.`);
+            // 피벗과 최종 R의 안착 교환
+            addLog(`🏁 LR교차 탐색 종료. 피벗[${pivotVal}] ↔ 최종 정착지 R[${cardElements[j].val}] 교환`, 'font-semibold text-purple-700');
             stepSwap++; globalSwap++; refreshScoreboard();
             await swap(low, j);
-            pivotObj.el.className = 'card-visual sorted'; sortedIndices.add(j);
+            
+            // 피벗 확정 처리
+            cardElements[j].el.className = 'card-visual sorted'; 
+            sortedIndices.add(cardElements[j].originalIdx);
+            
             updateAnalysisTable(pCount, cardElements.map(c => c.val), stepComp, stepSwap, j);
             return j;
         }
@@ -443,17 +504,11 @@
         async function swap(idx1, idx2) {
             let obj1 = cardElements[idx1]; let obj2 = cardElements[idx2];
             
-            // 💡 프레임이 밀리지 않고 다음 화면 주기에 맞추어 자연스럽게 이동하도록 최적화
-            await new Promise(resolve => requestAnimationFrame(() => {
-                obj1.el.style.left = `${startX + (idx2 * gap)}px`; 
-                obj2.el.style.left = `${startX + (idx1 * gap)}px`;
-                resolve();
-            }));
+            obj1.el.style.left = `${startX + (idx2 * gap)}px`; 
+            obj2.el.style.left = `${startX + (idx1 * gap)}px`;
             
             [cardElements[idx1], cardElements[idx2]] = [cardElements[idx2], cardElements[idx1]];
-            
-            // 💡 이동 애니메이션이 끝난 직후 다음 연산 코드가 부드럽게 흐르도록 타이밍을 조정합니다.
-            await new Promise(r => setTimeout(r, getDelay() * 0.85));
+            await new Promise(r => setTimeout(r, getDelay()));
         }
 
         window.onload = () => { updateSuitButtons(); changeSpeed(); resetStage(); };
