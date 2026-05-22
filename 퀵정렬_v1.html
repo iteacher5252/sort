@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>퀵 정렬: 통합 마스터 v5.5 (L/R 선택 피드백 완벽 동기화판)</title>
+    <title>퀵 정렬: 통합 마스터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
@@ -74,8 +74,8 @@
     <div class="max-w-[1300px] mx-auto">
         <header class="mb-8 bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
             <div>
-                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 퀵 정렬 통합 마스터 v5.5</h1>
-                <p class="text-slate-500 text-sm">트럼프 대각 레이아웃 (L/R 선택 상태 고정 피드백 완벽 동기화판)</p>
+                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 퀵 정렬 통합 마스터</h1>
+                <p class="text-slate-500 text-sm">퀵정렬의 특징을 파헤쳐보세요! (제자리 교환 수치 오류 수정)</p>
             </div>
             <div class="flex flex-wrap items-center gap-4 bg-slate-50 p-4 rounded-2xl w-full xl:w-auto">
                 <div class="flex gap-4 border-r border-slate-200 pr-4 text-center">
@@ -111,7 +111,7 @@
                         <input type="range" id="cardCountRange" min="5" max="10" value="5" class="w-24 accent-purple-600">
                     </div>
                     <div id="customWrapper" class="hidden">
-                        <input type="text" id="customInput" value="8, 4, 1, 9, 7" oninput="handleCustomInputDelay()" class="border border-slate-200 rounded-lg p-1 text-xs w-36 focus:outline-none focus:border-purple-500 font-mono font-bold">
+                        <input type="text" id="customInput" value="1, 4, 8, 9, 7" oninput="handleCustomInputDelay()" class="border border-slate-200 rounded-lg p-1 text-xs w-36 focus:outline-none focus:border-purple-500 font-mono font-bold">
                     </div>
                 </div>
 
@@ -304,7 +304,7 @@
                 card.innerHTML = `
                     <div class="card-suit text-left">${currentSuit}</div>
                     <div class="card-val">${val}</div>
-                    <div class="card-suit flex justify-end" style="transform: rotate(180deg)">${currentSuit}</div>
+                    <div class="card-suit flex" style="transform: rotate(180deg)">${currentSuit}</div>
                 `;
                 stage.appendChild(card);
                 
@@ -490,7 +490,16 @@
 
             // 피벗과 최종 R의 안착 교환
             addLog(`🏁 LR교차 탐색 종료. 피벗[${pivotVal}] ↔ 최종 정착지 R[${cardElements[j].val}] 교환`, 'font-semibold text-purple-700');
-            stepSwap++; globalSwap++; refreshScoreboard();
+            
+            // 💡 [오류 수정 핵심] 피벗 위치(low)와 R팀의 최종 정착지(j)가 다를 때만 실제 교환 횟수로 인정합니다.
+            if (low !== j) {
+                stepSwap++; 
+                globalSwap++; 
+                refreshScoreboard();
+            } else {
+                addLog(`ℹ️ 피벗이 이미 자기 정착 자리에 있으므로 실질적인 교환 횟수는 기록되지 않습니다.`, 'text-slate-400 italic');
+            }
+            
             await swap(low, j);
             
             // 피벗 확정 처리
