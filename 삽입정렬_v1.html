@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>삽입 정렬 마스터</title>
+    <title>삽입 정렬 마스터 v6.0 (최종 매칭 완료판)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
@@ -12,7 +12,7 @@
         
         .stage { background: #0f172a; border-radius: 3rem; height: 420px; position: relative; width: 100%; max-width: 1000px; margin: 0 auto; overflow: hidden; box-shadow: inset 0 0 60px rgba(0,0,0,0.6); }
         
-        /* 💡 카드 기본 모션 (부드러운 하드웨어 가속 유지) */
+        /* 💡 카드 비주얼 템플릿 */
         .card-visual { 
             width: 70px; height: 100px; background: white; border-radius: 12px; 
             display: flex; flex-direction: column; justify-content: space-between; padding: 8px; font-weight: 900; 
@@ -31,66 +31,87 @@
         .theme-black { color: #1e293b !important; }
         .theme-red { color: #dc2626 !important; }
         
+        /* 상태별 클래스 */
         .key-card { transform: translate3d(0, -120px, 0) scale(1.05) !important; z-index: 100 !important; border-color: #f59e0b !important; box-shadow: 0 15px 25px rgba(245, 158, 11, 0.4); }
         .comparing { transform: translate3d(0, -20px, 0) !important; border-color: #38bdf8 !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
         .shifting { transform: translate3d(0, -20px, 0) !important; border-color: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-        
-        /* 완료된 카드를 싱그러운 연한 초록색(emerald) 느낌으로 설정 */
         .sorted { background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; transform: translate3d(0, 0, 0) scale(1) !important; z-index: 5 !important; }
         
         .slot { position: absolute; width: 70px; height: 100px; bottom: 130px; border: 2px dashed #334155; border-radius: 12px; z-index: 1; }
         
-        /* 💡 로그박스 내부 폰트를 Pretendard 통합 서체 및 font-medium(500)으로 부드럽게 조정 */
-        .log-box { font-family: 'Pretendard', sans-serif; font-size: 13px; font-weight: 500; height: 420px; overflow-y: auto; background: white; padding: 20px; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); scroll-behavior: smooth; }
+        /* 💡 이미지 피드백 반영: 기본 본문 폰트(Pretendard) 스타일의 로그박스 내부 레이아웃 */
+        .log-box { 
+            font-family: 'Pretendard', sans-serif;
+            height: 420px; overflow-y: auto; background: white; padding: 20px; 
+            border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            scroll-behavior: smooth; 
+        }
+        .log-item { font-size: 13px; font-weight: 600; line-height: 1.7; color: #334155; margin-bottom: 2px; }
         
+        /* 분석 테이블 */
         .analysis-table { width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 1.5rem; overflow: hidden; }
         .analysis-table th { background: #f8fafc; color: #64748b; font-weight: 700; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: center; }
         .analysis-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: center; }
         
-        /* 단계 표시 태그 스타일 */
         .step-tag { background: #f1f5f9; color: #334155; padding: 4px 10px; border-radius: 8px; font-weight: 800; border: 1px solid #e2e8f0; }
         .step-tag.init { background: #f8fafc; color: #64748b; }
         .step-tag.final { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
     </style>
 </head>
-<body class="p-6">
-    <div class="max-w-[1240px] mx-auto">
-        <header class="mb-6 bg-white p-6 rounded-[2.5rem] shadow-sm flex flex-wrap lg:flex-nowrap justify-between items-center gap-6">
-            <div class="w-full lg:w-auto">
-                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 삽입 정렬 시뮬레이터</h1>
+<body class="p-8">
+    <div class="max-w-[1300px] mx-auto">
+        <header class="mb-8 bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 mb-1">🃏 삽입 정렬 통합 마스터</h1>
                 <p class="text-slate-500 text-sm pl-9 pt-3">1. 두번째 값부터 시작한다. <br> 2. 빈 위치에 카드를 넣는다!</p>
-                
-                <div class="flex items-center gap-2 mt-3" id="suitBtnArea">
-                </div>
             </div>
-
-            <div class="flex flex-wrap items-center gap-4 bg-slate-50 p-4 rounded-2xl w-full lg:w-auto justify-between lg:justify-end">
-                <div class="flex flex-col gap-1 min-w-[200px]">
-                    <span class="text-[10px] font-bold text-slate-400">커스텀 데이터 입력 (중복 불가)</span>
-                    <input type="text" id="customNumbers" value="8, 4, 1, 9, 7" placeholder="예: 5, 2, 9, 1, 7" class="px-3 py-1.5 text-xs font-bold font-mono rounded-lg border border-slate-300 focus:outline-none focus:border-indigo-500 w-full">
-                    <span id="errorMsg" class="text-[10px] text-red-500 font-bold hidden">⚠️ 중복된 수치가 포함되어 있습니다!</span>
-                </div>
-                
+            <div class="flex flex-wrap items-center gap-4 bg-slate-50 p-4 rounded-2xl w-full xl:w-auto">
                 <div class="flex gap-4 border-r border-slate-200 pr-4 text-center">
                     <div>
-                        <span class="block text-[10px] font-bold text-slate-400">총 비교</span>
+                        <span class="block text-[10px] font-bold text-slate-400">총 누적 비교</span>
                         <span id="totalCompScore" class="text-xl font-black text-amber-500">0</span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-bold text-slate-400">총 이동(Move)</span>
-                        <span id="totalMoveScore" class="text-xl font-black text-blue-500">0</span>
+                        <span class="block text-[10px] font-bold text-slate-400">총 누적 이동</span>
+                        <span id="totalSwapScore" class="text-xl font-black text-blue-500">0</span>
                     </div>
                 </div>
                 
                 <div class="flex flex-col gap-1">
-                    <span class="text-[10px] font-bold text-slate-400">속도 제어: <span id="speedVal" class="text-indigo-600">느리게 (1200ms)</span></span>
-                    <input type="range" id="speedRange" min="300" max="1500" step="50" value="1200" oninput="changeSpeed()" class="w-32 accent-indigo-600">
+                    <span class="text-[10px] font-bold text-slate-400">카드 문양 선택</span>
+                    <div class="flex gap-1" id="suitBtnGroup">
+                        <button onclick="selectSuit('♠')" id="btn-suit-♠" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-slate-800 border-slate-300 hover:bg-slate-100 transition shadow-sm">♠</button>
+                        <button onclick="selectSuit('♥')" id="btn-suit-♥" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-red-500 border-slate-300 hover:bg-red-50 transition shadow-sm">♥</button>
+                        <button onclick="selectSuit('♣')" id="btn-suit-♣" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-slate-800 border-slate-300 hover:bg-slate-100 transition shadow-sm">♣</button>
+                        <button onclick="selectSuit('◆')" id="btn-suit-◆" class="w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-red-500 border-slate-300 hover:bg-red-50 transition shadow-sm">◆</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1 border-r border-slate-200 pr-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400">카드 수량 제어</span>
+                        <label class="inline-flex items-center text-[10px] gap-1 font-bold text-purple-600 cursor-pointer">
+                            <input type="checkbox" id="customCheck" onchange="toggleInputMode()" class="rounded text-purple-600 accent-purple-600"> 직접입력
+                        </label>
+                    </div>
+                    <div id="randomWrapper" class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-purple-600 min-w-[24px]"><span id="countVal">5</span>개</span>
+                        <input type="range" id="cardCountRange" min="5" max="10" value="5" class="w-24 accent-purple-600">
+                    </div>
+                    <div id="customWrapper" class="hidden">
+                        <input type="text" id="customInput" value="8, 4, 1, 9, 7" oninput="handleCustomInputDelay()" class="border border-slate-200 rounded-lg p-1 text-xs w-36 focus:outline-none focus:border-purple-500 font-mono font-bold">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-bold text-slate-400">정렬 속도: <span id="speedVal" class="text-purple-600">느리게 (1200ms)</span></span>
+                    <input type="range" id="speedRange" min="300" max="1500" step="50" value="1200" oninput="changeSpeed()" class="w-28 accent-purple-600">
                 </div>
                 
-                <div class="flex gap-1.5 pl-2">
-                    <button id="startBtn" onclick="handleStart()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl font-bold transition text-xs shadow-md">시작</button>
-                    <button id="pauseBtn" onclick="handlePause()" class="bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl font-bold transition text-xs shadow-md" disabled>일시중지</button>
-                    <button id="resetBtn" onclick="handleReset()" class="bg-slate-600 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl font-bold transition text-xs shadow-md">초기화</button>
+                <div class="flex gap-1.5 pt-2">
+                    <button id="startBtn" onclick="handleStart()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md">시작</button>
+                    <button id="pauseBtn" onclick="handlePause()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md" disabled>일시중지</button>
+                    <button id="resetBtn" onclick="handleReset()" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded-xl font-bold transition text-xs shadow-md">초기화</button>
                 </div>
             </div>
         </header>
@@ -108,7 +129,7 @@
                 <thead>
                     <tr>
                         <th width="140">진행 단계</th>
-                        <th>정렬 상태 데이터 흐름 (파란색: 정렬 완료 영역 / 밑줄: 기준값)</th>
+                        <th>정렬 상태 데이터 흐름 (파란색: 정렬 완료 / 빨간색및밑줄: 기준값)</th>
                         <th width="140">회차별 비교 (누적)</th>
                         <th width="140">회차별 이동 (누적)</th>
                     </tr>
@@ -119,26 +140,39 @@
     </div>
 
     <script>
-        let cardElements = [];
-        let isRunning = false;
-        let isPaused = false;
-        let pauseResolve = null;
-        
-        let globalComp = 0;
-        let globalMove = 0;
-        
-        let startX = 40;
-        let gap = 105;
-        
-        const suits = [
-            { symbol: '♠', name: '스페이드', color: 'black' },
-            { symbol: '◆', name: '다이아', color: 'red' },
-            { symbol: '♥', name: '하트', color: 'red' },
-            { symbol: '♣', name: '클로버', color: 'black' }
-        ];
-        let currentSuitIdx = 0;
+        let cardElements = []; let isRunning = false; let isPaused = false; let pauseResolve = null;
+        let globalComp = 0; let globalMove = 0;
+        let startX = 40; let gap = 105; let inputTimer = null;
+        let currentSuit = '♠';
 
         function getDelay() { return parseInt(document.getElementById('speedRange').value); }
+        function isRedSuit(suit) { return suit === '♥' || suit === '◆'; }
+
+        function selectSuit(suit) {
+            if (isRunning) return;
+            currentSuit = suit;
+            updateSuitButtons();
+            resetStage();
+        }
+
+        function updateSuitButtons() {
+            ['♠', '♥', '♣', '◆'].forEach(s => {
+                const btn = document.getElementById(`btn-suit-${s}`);
+                if (s === currentSuit) {
+                    if (isRedSuit(s)) {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-red-500 text-white border-red-500 shadow-inner scale-105 transition";
+                    } else {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-slate-800 text-white border-slate-800 shadow-inner scale-105 transition";
+                    }
+                } else {
+                    if (isRedSuit(s)) {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-red-500 border-slate-300 hover:bg-red-50 transition shadow-sm";
+                    } else {
+                        btn.className = "w-8 h-8 rounded-lg font-extrabold text-sm border bg-white text-slate-800 border-slate-300 hover:bg-slate-100 transition shadow-sm";
+                    }
+                }
+            });
+        }
 
         function changeSpeed() {
             const delay = getDelay();
@@ -150,33 +184,21 @@
             document.documentElement.style.setProperty('--speed', `${delay * 0.65}ms`);
         }
 
-        function updateSuitButtons() {
-            const area = document.getElementById('suitBtnArea');
-            area.innerHTML = `<span class="text-xs font-bold text-slate-500 mr-1">카드 모양:</span>`;
-            
-            suits.forEach((s, idx) => {
-                const btn = document.createElement('button');
-                btn.onclick = () => selectSuit(idx);
-                
-                let baseClass = "suit-btn px-3 py-1 rounded-lg font-extrabold text-sm shadow-sm ";
-                if (idx === currentSuitIdx) {
-                    if (s.color === 'black') baseClass += "bg-slate-900 text-white border-slate-900 scale-105";
-                    else baseClass += "bg-red-600 text-white border-red-600 scale-105";
-                } else {
-                    baseClass += "bg-white border-slate-200 ";
-                    baseClass += (s.color === 'red') ? "text-red-500" : "text-slate-800";
-                }
-                btn.className = baseClass;
-                btn.innerText = `${s.symbol}`;
-                area.appendChild(btn);
-            });
+        function toggleInputMode() {
+            const isCustom = document.getElementById('customCheck').checked;
+            if(isCustom) {
+                document.getElementById('randomWrapper').classList.add('hidden');
+                document.getElementById('customWrapper').classList.remove('hidden');
+            } else {
+                document.getElementById('randomWrapper').classList.remove('hidden');
+                document.getElementById('customWrapper').classList.add('hidden');
+            }
+            if (!isRunning) resetStage();
         }
 
-        function selectSuit(idx) {
-            if (isRunning) return;
-            currentSuitIdx = idx;
-            updateSuitButtons();
-            resetStage();
+        function handleCustomInputDelay() {
+            clearTimeout(inputTimer);
+            inputTimer = setTimeout(() => { if (!isRunning) resetStage(); }, 600);
         }
 
         function checkPause() {
@@ -184,237 +206,217 @@
             return new Promise(resolve => { pauseResolve = resolve; });
         }
 
-        document.getElementById('customNumbers').addEventListener('input', () => {
+        document.getElementById('cardCountRange').addEventListener('input', (e) => {
+            document.getElementById('countVal').innerText = e.target.value;
             if (!isRunning) resetStage();
         });
 
-        /* 💡 개별 로그 항목 생성 시 font-mono 클래스 제거 및 가독성 패딩 최적화 */
-        function addLog(html, type = '') {
+        /* 💡 개별 div 줄단위 노드 엘리먼트 렌더러 */
+        function addLog(text, customClass = '') {
             const logBox = document.getElementById('logBox');
-            const entry = document.createElement('div');
-            entry.className = `mb-1.5 pb-1 border-b border-slate-50 text-slate-700 text-xs tracking-tight leading-relaxed ${type}`;
-            entry.innerHTML = html;
-            logBox.appendChild(entry);
+            if (logBox.querySelector('.italic')) {
+                logBox.innerHTML = '';
+            }
+            const item = document.createElement('div');
+            item.className = `log-item ${customClass}`;
+            item.innerText = text;
+            logBox.appendChild(item);
             logBox.scrollTop = logBox.scrollHeight;
         }
 
         function refreshScoreboard() {
             document.getElementById('totalCompScore').innerText = globalComp;
-            document.getElementById('totalMoveScore').innerText = globalMove;
+            document.getElementById('totalSwapScore').innerText = globalMove;
         }
 
-        /* 하단 표 테이블 단계 텍스트 매핑 및 데이터 색상 다르게 표시 기능 구현 */
-        function updateAnalysisTable(stageType, roundNum, data, comp, move, insertionPos = -1) {
+        /* 📊 요청 피드백 스크린샷 규격과 데이터 마킹 조건 100% 매칭 구현 */
+        function updateAnalysisTable(stepType, stepIdx, data, comp, move, currentKeyVal) {
             const body = document.getElementById('analysisBody');
             const tr = document.createElement('tr');
             
-            let tagHtml = '';
-            let sortedCount = 0; 
+            let tagHtml = `<span class="step-tag">${stepIdx} 회차</span>`;
+            if (stepType === '시작') tagHtml = `<span class="step-tag init">초기 상태</span>`;
+            if (stepType === 'final') tagHtml = `<span class="step-tag final">정렬 완료</span>`;
 
-            if (stageType === 'init') {
-                tagHtml = `<span class="step-tag init">초기상태</span>`;
-                sortedCount = 1; 
-            } else if (stageType === 'final') {
-                tagHtml = `<span class="step-tag final">최종단계</span>`;
-                sortedCount = data.length; 
-            } else {
-                tagHtml = `<span class="step-tag">${roundNum}단계</span>`;
-                sortedCount = roundNum + 1; 
-            }
-
-            const rowDataHtml = data.map((v, idx) => {
-                if (stageType !== 'init' && idx === insertionPos) {
-                    return `<span class="text-red-500 font-extrabold text-sm mx-0.5 underline decoration-2">${v}</span>`;
+            // 삽입 완료 후 정착된 최종 데이터 배열을 돌며 마킹 매핑
+            const rowData = data.map((v, idx) => {
+                let isSortedArea = (stepType === 'final') || (idx <= stepIdx);
+                let isKey = (v === currentKeyVal && stepType !== '시작');
+                
+                let classes = [];
+                if (isKey) {
+                    // 💡 [피드백 반영] 기준값은 빨간색이면서 동시에 밑줄 처리
+                    classes.push('text-red-500 font-extrabold underline decoration-2'); 
+                } else if (isSortedArea) {
+                    classes.push('text-blue-600 font-extrabold');
+                } else {
+                    classes.push('text-slate-700 font-bold');
                 }
-                if (idx < sortedCount) {
-                    return `<span class="text-blue-600 font-extrabold text-sm mx-0.5">${v}</span>`;
-                }
-                return `<span class="text-slate-400 mx-0.5">${v}</span>`;
+                
+                return `<span class="${classes.join(' ')}">${v}</span>`;
             }).join(', ');
 
-            const compDisplay = `${comp}회 <span class="text-slate-400 text-[11px]">(${globalComp})</span>`;
-            const moveDisplay = `${move}회 <span class="text-slate-400 text-[11px]">(${globalMove})</span>`;
+            const compDisplay = stepType === '시작' ? '0' : `${comp} <span class="text-slate-400 text-[11px]">(${globalComp})</span>`;
+            const moveDisplay = stepType === '시작' ? '0' : `${move} <span class="text-slate-400 text-[11px]">(${globalMove})</span>`;
 
             tr.innerHTML = `
                 <td>${tagHtml}</td>
-                <td class="font-bold text-slate-700">[ ${rowDataHtml} ]</td>
+                <td class="font-mono text-sm">[ ${rowData} ]</td>
                 <td class="text-amber-600 font-bold">${compDisplay}</td>
                 <td class="text-blue-600 font-bold">${moveDisplay}</td>
             `;
-            body.prepend(tr);
-        }
-
-        function parseInputNumbers() {
-            const inputVal = document.getElementById('customNumbers').value;
-            const errEl = document.getElementById('errorMsg');
             
-            let tokens = inputVal.split(/[\s,]+/).filter(t => t.trim() !== "");
-            let nums = tokens.map(t => parseInt(t)).filter(n => !isNaN(n));
-            
-            let uniqueSet = new Set(nums);
-            if (uniqueSet.size !== nums.length) {
-                errEl.classList.remove('hidden');
-                return null;
+            // 💡 최신 내용이 무조건 맨 위로 오고 초기 상태가 가장 아래로 정렬되도록 구성
+            if (body.firstChild) {
+                body.insertBefore(tr, body.firstChild);
             } else {
-                errEl.classList.add('hidden');
+                body.appendChild(tr);
             }
-            return nums;
         }
 
         function resetStage() {
             const stage = document.getElementById('stage');
-            stage.innerHTML = '';
+            stage.querySelectorAll('.card-visual, .slot').forEach(c => c.remove());
             cardElements = [];
             
-            let nums = parseInputNumbers();
-            if (!nums || nums.length === 0) return;
+            const isCustom = document.getElementById('customCheck').checked;
+            const textThemeClass = isRedSuit(currentSuit) ? 'theme-red' : 'theme-black';
+            let nums = [];
+
+            if (isCustom) {
+                nums = document.getElementById('customInput').value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                if (nums.length === 0) return;
+                if (new Set(nums).size !== nums.length) return;
+            } else {
+                const count = parseInt(document.getElementById('cardCountRange').value);
+                if (count === 5) nums = [8, 4, 1, 9, 7];
+                else {
+                    let pool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                    pool.sort(() => Math.random() - 0.5);
+                    nums = pool.slice(0, count);
+                }
+            }
 
             const count = nums.length;
-            const totalWidth = stage.offsetWidth;
-            gap = Math.min(95, (totalWidth - 100) / count);
-            startX = (totalWidth - (gap * (count - 1) + 70)) / 2;
-
-            const suitObj = suits[currentSuitIdx];
-            const colorClass = suitObj.color === 'black' ? 'theme-black' : 'theme-red';
+            gap = Math.min(95, (stage.offsetWidth - 100) / count);
+            startX = (stage.offsetWidth - (gap * (count - 1) + 70)) / 2;
 
             nums.forEach((val, i) => {
                 const slot = document.createElement('div');
-                slot.className = 'slot';
-                slot.style.left = `${startX + (i * gap)}px`;
+                slot.className = 'slot'; slot.style.left = `${startX + (i * gap)}px`;
                 stage.appendChild(slot);
 
                 const card = document.createElement('div');
-                card.className = `card-visual ${colorClass}`;
-                card.style.left = `${startX + (i * gap)}px`;
+                card.className = `card-visual ${textThemeClass}`; card.style.left = `${startX + (i * gap)}px`;
                 card.innerHTML = `
-                    <div class="card-suit text-left w-full">${suitObj.symbol}</div>
+                    <div class="card-suit text-left">${currentSuit}</div>
                     <div class="card-val">${val}</div>
-                    <div class="card-suit text-right w-full" style="transform: rotate(180deg)">${suitObj.symbol}</div>
+                    <div class="card-suit flex" style="transform: rotate(180deg)">${currentSuit}</div>
                 `;
                 stage.appendChild(card);
-                cardElements.push({ val, el: card });
+                cardElements.push({ val, el: card, themeClass: textThemeClass });
             });
+            document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">시작 버튼을 누르면 작동합니다.</div>';
         }
 
         function handlePause() {
             if (!isRunning || isPaused) return;
-            isPaused = true;
-            document.getElementById('pauseBtn').disabled = true;
-            document.getElementById('startBtn').innerText = '다시 시작';
-            document.getElementById('startBtn').disabled = false;
-            addLog('🛑 <b>정렬 일시정지</b>', 'text-amber-600 font-bold');
+            isPaused = true; document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('startBtn').innerText = '재시작'; document.getElementById('startBtn').disabled = false;
+            addLog('🛑 정렬이 일시 중지되었습니다.', 'text-amber-500 font-bold');
         }
 
         function handleReset() {
-            isRunning = false;
-            isPaused = false;
-            if (pauseResolve) {
-                pauseResolve();
-                pauseResolve = null;
-            }
-            globalComp = 0;
-            globalMove = 0;
-
+            isRunning = false; isPaused = false; if (pauseResolve) pauseResolve();
+            globalComp = 0; globalMove = 0;
             refreshScoreboard();
-            document.getElementById('startBtn').innerText = '시작';
-            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').innerText = '시작'; document.getElementById('startBtn').disabled = false;
             document.getElementById('pauseBtn').disabled = true;
-            document.getElementById('customNumbers').disabled = false;
+            document.getElementById('customCheck').disabled = false; document.getElementById('cardCountRange').disabled = false;
+            document.getElementById('customInput').disabled = false;
+            document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = false);
             document.getElementById('analysisBody').innerHTML = '';
             resetStage();
-            document.getElementById('logBox').innerHTML = '<div class="text-slate-400 font-bold italic">전체 보드가 리셋되었습니다.</div>';
         }
 
         async function handleStart() {
             if (isRunning && isPaused) {
-                isPaused = false;
-                document.getElementById('startBtn').disabled = true;
-                document.getElementById('pauseBtn').disabled = false;
-                addLog('▶️ <b>정렬 재개</b>', 'text-emerald-600 font-bold');
-                if (pauseResolve) pauseResolve();
-                return;
+                isPaused = false; document.getElementById('startBtn').disabled = true; document.getElementById('pauseBtn').disabled = false;
+                addLog('▶️ 정렬을 재개합니다.', 'text-emerald-600 font-bold');
+                if (pauseResolve) pauseResolve(); return;
             }
-
-            let nums = parseInputNumbers();
-            if (!nums || nums.length === 0) {
-                alert("중복 없는 데이터를 입력해 주세요.");
-                return;
-            }
-
             if (isRunning) return;
-            isRunning = true;
-            isPaused = false;
-            globalComp = 0;
-            globalMove = 0;
-            
+
+            isRunning = true; isPaused = false; globalComp = 0; globalMove = 0;
             refreshScoreboard();
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('pauseBtn').disabled = false;
-            document.getElementById('customNumbers').disabled = true;
+            document.getElementById('startBtn').disabled = true; document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('customCheck').disabled = true; document.getElementById('cardCountRange').disabled = true;
+            document.getElementById('customInput').disabled = true;
+            document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = true);
+            
+            document.getElementById('logBox').innerHTML = '';
             document.getElementById('analysisBody').innerHTML = '';
             
-            document.getElementById('logBox').innerHTML = '<div class="font-extrabold text-slate-900 text-sm">🚀 시뮬레이션 시작</div>';
+            addLog('🚀 시뮬레이션 시작', 'text-indigo-600 font-bold text-sm mb-1');
+            updateAnalysisTable('시작', 0, cardElements.map(c => c.val), 0, 0, null);
             
-            updateAnalysisTable('init', 0, cardElements.map(c => c.val), 0, 0);
-            cardElements[0].el.classList.add('sorted');
+            if(cardElements[0]) cardElements[0].el.className = 'card-visual sorted';
             
             await new Promise(r => setTimeout(r, 600));
             await insertionSort();
             
             if (isRunning) {
-                cardElements.forEach(c => c.el.className = 'card-visual sorted');
-                addLog('🎊 <b>정렬 완료!</b>', 'font-black text-sm text-emerald-600');
+                addLog('🎊 정렬 완료!', 'text-emerald-600 font-bold text-sm mt-1');
                 isRunning = false;
-                document.getElementById('startBtn').innerText = '시작';
-                document.getElementById('startBtn').disabled = true;
+                document.getElementById('startBtn').innerText = '시작'; document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = true;
-                document.getElementById('customNumbers').disabled = false;
+                document.getElementById('customCheck').disabled = false; document.getElementById('cardCountRange').disabled = false;
+                document.getElementById('customInput').disabled = false;
+                document.querySelectorAll('#suitBtnGroup button').forEach(b => b.disabled = false);
             }
         }
 
+        /* 🚀 핵심 삽입 정렬 코어 연산 루프 알고리즘 */
         async function insertionSort() {
-            const n = cardElements.length;
+            let n = cardElements.length;
             for (let i = 1; i < n; i++) {
                 await checkPause(); if (!isRunning) return;
-
-                // 회차가 시작할 때 "📂 [제 X단계]" 추가 (글자 굵게 강조 및 동일 글꼴 매핑)
-                addLog(`📂 <b>[제 ${i}단계]</b>`, 'mt-3 mb-1 text-slate-900 text-[13px] font-extrabold border-t border-slate-100 pt-2');
-
+                
                 let keyObj = cardElements[i];
                 let keyVal = keyObj.val;
-                
-                keyObj.el.classList.add('key-card');
-                addLog(`🃏 기준 카드 선택: [${keyVal}]`, 'text-amber-600 font-bold');
-                await new Promise(r => setTimeout(r, getDelay() * 0.65));
-
-                let j = i - 1;
                 let stepComp = 0;
                 let stepMove = 0;
 
+                addLog(`📂 [제 ${i}단계]`, 'mt-3 mb-1 text-slate-900 text-[13px] font-extrabold border-t border-slate-100 pt-2');
+                
+                keyObj.el.classList.add('key-card');
+                addLog(`🃏 기준 카드 선택: [${keyVal}]`);
+                await new Promise(r => setTimeout(r, getDelay() * 0.55));
+
+                let j = i - 1;
                 while (j >= 0) {
                     await checkPause(); if (!isRunning) return;
                     
                     let compObj = cardElements[j];
                     compObj.el.classList.add('comparing');
-                    
-                    stepComp++; globalComp++; refreshScoreboard();
                     addLog(`👀 비교: [${compObj.val}] vs [${keyVal}]`);
+                    stepComp++; globalComp++; refreshScoreboard();
+                    
                     await new Promise(r => setTimeout(r, getDelay() * 0.55));
 
                     if (compObj.val > keyVal) {
+                        addLog(`🔄 위치 이동: [${compObj.val}] > [${keyVal}] 이므로 한 칸 밀기`);
                         compObj.el.classList.remove('comparing');
                         compObj.el.classList.add('shifting');
                         
-                        addLog(`🔄 위치 이동: [${compObj.val}] > [${keyVal}] 이므로 한 칸 밀기`);
+                        cardElements[j + 1] = compObj;
                         
                         await new Promise(resolve => requestAnimationFrame(() => {
                             compObj.el.style.left = `${startX + ((j + 1) * gap)}px`;
                             resolve();
                         }));
                         
-                        cardElements[j + 1] = compObj;
                         stepMove++; globalMove++; refreshScoreboard();
-                        
                         await new Promise(r => setTimeout(r, getDelay() * 0.55));
                         compObj.el.classList.remove('shifting');
                         j--;
@@ -431,16 +433,17 @@
                     keyObj.el.style.left = `${startX + ((j + 1) * gap)}px`;
                     resolve();
                 }));
-                addLog(`📥 카드 삽입: 빈 위치에 [${keyVal}] 삽입`, 'text-slate-900 font-bold');
+                addLog(`📥 카드 삽입: 빈 위치에 [${keyVal}] 삽입`);
                 
                 await new Promise(r => setTimeout(r, getDelay() * 0.55));
                 keyObj.el.classList.remove('key-card');
 
-                // 무대 위 카드들의 누적 정렬 완료 상태 동기화 (연한 초록색 반영)
-                for (let k = 0; k <= i; k++) { if(cardElements[k]) cardElements[k].el.className = 'card-visual sorted'; }
+                for (let k = 0; k <= i; k++) { 
+                    if(cardElements[k]) cardElements[k].el.className = 'card-visual sorted'; 
+                }
                 
                 let type = (i === n - 1) ? 'final' : 'normal';
-                updateAnalysisTable(type, i, cardElements.map(c => c.val), stepComp, stepMove, j + 1);
+                updateAnalysisTable(type, i, cardElements.map(c => c.val), stepComp, stepMove, keyVal);
                 
                 await new Promise(r => setTimeout(r, getDelay() * 0.45));
             }
