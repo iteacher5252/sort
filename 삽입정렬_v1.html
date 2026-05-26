@@ -40,6 +40,13 @@
         .slot { position: absolute; width: 70px; height: 100px; bottom: 130px; border: 2px dashed #334155; border-radius: 12px; z-index: 1; }
         
         /* 💡 이미지 피드백 반영: 기본 본문 폰트(Pretendard) 스타일의 로그박스 내부 레이아웃 */
+        .log_header {
+            font-weight: 800;
+            color: #6b21a8;
+            margin-top: 10px;
+            border-bottom: 2px solid #f3e8ff;
+            padding-bottom: 4px;
+        }
         .log-box { 
             font-family: 'Pretendard', sans-serif;
             height: 420px; overflow-y: auto; background: white; padding: 20px; 
@@ -357,7 +364,7 @@
             document.getElementById('logBox').innerHTML = '';
             document.getElementById('analysisBody').innerHTML = '';
             
-            addLog('🚀 시뮬레이션 시작', 'text-indigo-600 font-bold text-sm mb-1');
+            addLog('🚀 삽입 정렬 시뮬레이션 시작', 'log_header text-indigo-600');
             updateAnalysisTable('시작', 0, cardElements.map(c => c.val), 0, 0, null);
             
             if(cardElements[0]) cardElements[0].el.className = 'card-visual sorted';
