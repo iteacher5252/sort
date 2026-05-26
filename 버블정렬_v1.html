@@ -113,14 +113,14 @@
         </div>
 
         <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-            <h3 class="text-lg font-extrabold text-slate-800 mb-4">📊 패스별 데이터 흐름 실시간 분석 테이블</h3>
+            <h3 class="text-lg font-extrabold text-slate-800 mb-4">📊 단계별 정렬 데이터 실시간 기록</h3>
             <table class="analysis-table">
                 <thead>
                     <tr>
-                        <th width="120">진행 패스</th>
+                        <th width="120">진행 단계</th>
                         <th>배열 데이터 상태</th>
-                        <th width="140">패스별 비교 (누적)</th>
-                        <th width="140">패스별 교환 (누적)</th>
+                        <th width="140">단계별 비교 (누적)</th>
+                        <th width="140">단계별 교환 (누적)</th>
                     </tr>
                 </thead>
                 <tbody id="analysisBody"></tbody>
@@ -216,7 +216,7 @@
         function updateAnalysisTable(step, data, comp, swap, isDoneState = false) {
             const body = document.getElementById('analysisBody');
             const tr = document.createElement('tr');
-            let tagHtml = `<span class="step-tag">${step}패스</span>`;
+            let tagHtml = `<span class="step-tag">${step}단계</span>`;
             if (step === '시작') tagHtml = `<span class="step-tag !bg-slate-700 !text-white">시작상태</span>`;
             if (isDoneState) tagHtml = `<span class="done-tag">최종 완료</span>`;
 
@@ -342,7 +342,7 @@
             const n = cardElements.length;
             for (let pass = 0; pass < n - 1; pass++) {
                 passCount++;
-                addLog(`📂 <b>[제 ${passCount}회차 패스]</b>`, 'log-header');
+                addLog(`📂 <b>[제 ${passCount}회차 단계]</b>`, 'log-header');
                 let stepComp = 0; let stepSwap = 0;
 
                 for (let i = 0; i < n - pass - 1; i++) {
