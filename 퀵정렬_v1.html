@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>퀵 정렬: 통합 마스터 (교환 후 불필요한 비교 제거판)</title>
+    <title>퀵 정렬: 통합 마스터 (교차 및 제자리 정착 교육용 최적화 버전)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
@@ -12,7 +12,6 @@
         
         .stage { background: #0f172a; border-radius: 3rem; height: 420px; position: relative; width: 100%; max-width: 1000px; margin: 0 auto; overflow: hidden; box-shadow: inset 0 0 60px rgba(0,0,0,0.6); }
         
-        /* 💡 카드의 기본 비주얼 템플릿 */
         .card-visual { 
             width: 70px; height: 100px; background: white; border-radius: 12px; 
             display: flex; flex-direction: column; justify-content: space-between; padding: 8px; font-weight: 900; 
@@ -27,11 +26,9 @@
         .card-val { font-size: 1.5rem; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
         .card-suit { font-size: 11px; line-height: 1; font-weight: bold; }
         
-        /* 트럼프 카드 커스텀 테상 색상 */
         .theme-red { color: #ef4444 !important; border-color: #fca5a5 !important; }
         .theme-black { color: #1e293b !important; border-color: #cbd5e1 !important; }
         
-        /* 포인터 기본 스타일 */
         .pointer { 
             position: absolute; bottom: 85px; width: 32px; text-align: center; font-weight: 800; font-size: 12px; 
             will-change: left;
@@ -41,14 +38,11 @@
         #pointerL { color: #3b82f6; border: 2px solid #3b82f6; transform: translateX(3px); }
         #pointerR { color: #ef4444; border: 2px solid #ef4444; transform: translateX(33px); }
         
-        /* 🚀 실시간 애니메이션 상태 정의 클래스 */
         .pivot { transform: translateY(-160px) scale(1.05) !important; z-index: 150 !important; border-color: #ef4444 !important; box-shadow: 0 0 35px rgba(239, 68, 68, 0.6) !important; }
         
-        /* [조사 중] 위로 살짝 들리는 스캔 상태 */
         .comparing-L { transform: translateY(-20px); border-color: #3b82f6 !important; border-width: 3px !important; box-shadow: 0 0 25px rgba(59, 130, 246, 0.6); }
         .comparing-R { transform: translateY(-20px); border-color: #ef4444 !important; border-width: 3px !important; box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
         
-        /* [선택/정지 완료] 조건을 만족하여 더 높이 들리며 배경과 테두리를 명확히 굳히는 상태 */
         .stop-here { transform: translateY(-35px) scale(1.04); background-color: #eff6ff !important; border-color: #3b82f6 !important; border-width: 3px !important; color: #1e40af !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); z-index: 40; }
         .stop-here-R { transform: translateY(-35px) scale(1.04); background-color: #fef2f2 !important; border-color: #ef4444 !important; border-width: 3px !important; color: #991b1b !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); z-index: 40; }
         
@@ -57,7 +51,6 @@
         
         .slot { position: absolute; width: 70px; height: 100px; bottom: 130px; border: 2px dashed #334155; border-radius: 12px; z-index: 1; }
         
-        /* 📂 보라색 테마 로그 박스 */
         .log-box { font-size: 13px; height: 420px; overflow-y: auto; background: white; padding: 20px; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); scroll-behavior: smooth; }
         .log-header { font-weight: 800; color: #6b21a8; margin-top: 10px; border-bottom: 2px solid #f3e8ff; padding-bottom: 4px; }
         
@@ -311,7 +304,7 @@
                 card.innerHTML = `
                     <div class="card-suit text-left">${currentSuit}</div>
                     <div class="card-val">${val}</div>
-                    <div class="card-suit flex justify-end" style="transform: rotate(180deg)">${currentSuit}</div>
+                    <div class="card-suit flex" style="transform: rotate(180deg)">${currentSuit}</div>
                 `;
                 stage.appendChild(card);
                 
@@ -396,7 +389,7 @@
                 await checkPause(); if (!isRunning) return;
                 await movePointer('pointerL', low); await movePointer('pointerR', low);
                 cardElements[low].el.classList.add('single-check');
-                addLog(`🔍 <b>[단일 원소 발견]</b> 인덱스 ${low} (값: ${cardElements[low].val}) 구역 자동 확정`, 'text-yellow-600 font-semibold');
+                addLog(`🔍 <b>[단일 원소 발견]</b> (값: ${cardElements[low].val}) 구역 자동 확정`, 'text-yellow-600 font-semibold');
                 await new Promise(r => setTimeout(r, getDelay()));
                 cardElements[low].el.className = 'card-visual sorted';
                 sortedIndices.add(cardElements[low].originalIdx); 
@@ -413,97 +406,100 @@
             let pivotObj = cardElements[low]; let pivotVal = pivotObj.val;
             pivotObj.el.className = `card-visual ${pivotObj.themeClass} pivot`; pCount++;
             
-            addLog(`📂 <b>[제 ${pCount}회차 분할 구역]</b> 인덱스 ${low} ~ ${high} 설정 (피벗: ${pivotVal})`, 'log-header');
+            addLog(`📂 <b>[제 ${pCount}회차 분할 구역] (피벗: ${pivotVal})`, 'log-header');
 
             let i = low + 1; let j = high; let stepComp = 0; let stepSwap = 0;
-            let leftStopped = false; let rightStopped = false;
 
-            await movePointer('pointerL', i); await movePointer('pointerR', j);
-            await new Promise(r => setTimeout(r, getDelay()));
+            await movePointer('pointerL', i);
+            await movePointer('pointerR', j);
+            await new Promise(r => setTimeout(r, getDelay() * 0.5));
 
-            while (i <= j) {
-                // 🔴 L 포인터 이동 (큰 수 탐색)
-                if (!leftStopped) {
-                    while (i <= high) {
-                        await checkPause(); if (!isRunning) return;
-                        await movePointer('pointerL', i); 
-                        
-                        cardElements[i].el.className = `card-visual ${cardElements[i].themeClass} comparing-L`;
-                        stepComp++; globalComp++; refreshScoreboard();
-                        
-                        addLog(`🔴 L 포인터 조사: 인덱스 ${i} (값: ${cardElements[i].val})`);
+            while (true) {
+                // 🔴 1. L 포인터 단독 이동 (큰 값을 찾을 때까지 전진)
+                while (i <= high) {
+                    await checkPause(); if (!isRunning) return;
+                    await movePointer('pointerL', i); 
+                    
+                    cardElements[i].el.className = `card-visual ${cardElements[i].themeClass} comparing-L`;
+                    stepComp++; globalComp++; refreshScoreboard();
+                    addLog(`🔴 L 포인터 조사: (값: ${cardElements[i].val})`);
+                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                    
+                    if (cardElements[i].val > pivotVal) {
+                        addLog(`⚠️ <b>L 정지 (큰 값 발견)</b>: 값 [${cardElements[i].val}]이 피벗(${pivotVal})보다 큽니다!`, 'text-blue-600 font-semibold');
+                        cardElements[i].el.className = `card-visual ${cardElements[i].themeClass} stop-here`; 
                         await new Promise(r => setTimeout(r, getDelay() * 0.4));
-                        
-                        if (cardElements[i].val > pivotVal) {
-                            addLog(`⚠️ <b>L 정지</b>: 값 [${cardElements[i].val}]이 피벗(${pivotVal})보다 크므로 탐색을 멈춥니다!`, 'text-blue-600 font-semibold');
-                            cardElements[i].el.className = `card-visual ${cardElements[i].themeClass} stop-here`; 
-                            leftStopped = true;
-                            await new Promise(r => setTimeout(r, getDelay() * 0.5));
-                            break;
-                        }
-                        cardElements[i].el.className = `card-visual ${cardElements[i].themeClass}`; i++;
+                        break;
                     }
+                    cardElements[i].el.className = `card-visual ${cardElements[i].themeClass}`; i++;
                 }
-                
-                // 🔵 R 포인터 이동 (작은 수 탐색)
-                if (!rightStopped) {
-                    while (j > low) {
-                        await checkPause(); if (!isRunning) return;
-                        await movePointer('pointerR', j); 
-                        
+
+                // 🔵 2. R 포인터 단독 이동 (💡 학생들의 직관을 위해 j >= low 까지 검사하도록 수정)
+                while (j >= low) {
+                    await checkPause(); if (!isRunning) return;
+                    await movePointer('pointerR', j); 
+                    
+                    // 피벗 자체를 검사할 때는 임시 클래스 부여하지 않고 로그만 정교하게 처리
+                    if(j > low) {
                         cardElements[j].el.className = `card-visual ${cardElements[j].themeClass} comparing-R`;
-                        stepComp++; globalComp++; refreshScoreboard();
-                        
-                        addLog(`🔵 R 포인터 조사: 인덱스 ${j} (값: ${cardElements[j].val})`);
-                        await new Promise(r => setTimeout(r, getDelay() * 0.4));
-                        
-                        if (cardElements[j].val < pivotVal) {
-                            addLog(`⚠️ <b>R 정지</b>: 값 [${cardElements[j].val}]이 피벗(${pivotVal})보다 작으므로 탐색을 멈춥니다!`, 'text-red-600 font-semibold');
-                            cardElements[j].el.className = `card-visual ${cardElements[j].themeClass} stop-here-R`; 
-                            rightStopped = true;
-                            await new Promise(r => setTimeout(r, getDelay() * 0.5));
-                            break;
-                        }
-                        cardElements[j].el.className = `card-visual ${cardElements[j].themeClass}`; j--;
                     }
+                    
+                    stepComp++; globalComp++; refreshScoreboard();
+                    addLog(`🔵 R 포인터 조사: (값: ${cardElements[j].val})`);
+                    await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                    
+                    if (cardElements[j].val < pivotVal) {
+                        addLog(`⚠️ <b>R 정지 (작은 값 발견)</b>: 값 [${cardElements[j].val}]이 피벗(${pivotVal})보다 작습니다!`, 'text-red-600 font-semibold');
+                        cardElements[j].el.className = `card-visual ${cardElements[j].themeClass} stop-here-R`; 
+                        await new Promise(r => setTimeout(r, getDelay() * 0.4));
+                        break;
+                    }
+                    
+                    // 만약 피벗 위치(low)까지 내려왔는데도 작은 값을 못 찾았다면, 피벗 자신과 마주친 것임으로 멈춥니다.
+                    if (j === low) {
+                        addLog(`🔵 R 포인터가 피벗 자기 자신(${low}번지)에 도달하여 검사를 마칩니다.`);
+                        break;
+                    }
+                    
+                    cardElements[j].el.className = `card-visual ${cardElements[j].themeClass}`; j--;
                 }
-                
-                // 💡 [핵심 수정] 교환 발생 처리 및 즉시 강제 전진 연산 구현
-                if (i < j && leftStopped && rightStopped) {
+
+                // 💡 3. 교차 여부 판단 및 연출
+                if (i < j) {
                     await checkPause(); if (!isRunning) return;
                     stepSwap++; globalSwap++; refreshScoreboard();
-                    addLog(`🔄 <b>교환 발생</b>: L의 정지값 [${cardElements[i].val}] ↔ R의 정지값 [${cardElements[j].val}]`);
+                    addLog(`🔄 <b>일반 교환 발생</b>: L의 큰값 [${cardElements[i].val}] ↔ R의 작은값 [${cardElements[j].val}]`);
                     
                     cardElements[i].el.className = `card-visual ${cardElements[i].themeClass}`; 
                     cardElements[j].el.className = `card-visual ${cardElements[j].themeClass}`;
                     await swap(i, j);
-                    
-                    // 🌟 교환된 카드는 이미 결과를 알고 있으므로 다음 칸으로 패스시킵니다!
-                    i++;
-                    j--;
-                    
-                    leftStopped = false; rightStopped = false;
+                    i++; j--;
                 } else {
-                    break;
+                    await checkPause(); if (!isRunning) return;
+                    addLog(`⚡ <b>포인터 교차 확정!</b> (L: ${i}번지, R: ${j}번지에서 엇갈림)`, 'text-purple-600 font-black text-sm bg-purple-50 p-2 rounded-lg my-1');
+                    await new Promise(r => setTimeout(r, getDelay() * 0.8)); 
+                    break; 
                 }
             }
-            await checkPause(); if (!isRunning) return;
-            
+
+            // 주변 하이라이트 지우기
             for(let k = low; k <= high; k++) {
                 if (cardElements[k] && k !== low && !sortedIndices.has(cardElements[k].originalIdx)) {
                     cardElements[k].el.className = `card-visual ${cardElements[k].themeClass}`;
                 }
             }
 
-            addLog(`🏁 LR교차 탐색 종료. 피벗[${pivotVal}] ↔ 최종 정착지 R[${cardElements[j].val}] 교환`, 'font-semibold text-purple-700');
-            
+            // 🏁 4. 최종 정리 (제자리 정착 연출 반영)
             if (low !== j) {
+                addLog(`🏁 <b>[최종 정리]</b>포인터가 교차가 되었으므로 R의 최종 안착지 [${cardElements[j].val}] ↔ 피벗 [${pivotVal}] 교환!`, 'font-bold text-purple-700 bg-purple-100 p-2 rounded-lg');
                 stepSwap++; globalSwap++; refreshScoreboard();
+                await swap(low, j);
             } else {
-                addLog(`ℹ️ 피벗이 이미 자기 정착 자리에 있으므로 실질적인 교환 횟수는 기록되지 않습니다.`, 'text-slate-400 italic');
+                // 🌟 [요청 반영] R이 피벗 위치와 같아 제자리에 서는 상황 교육적 연출
+                addLog(`🏁 <b>[제자리 정착]</b> R의 최종 안착지(${j}번지)가 피벗의 초기 위치(${low}번지)와 일치합니다. 위치 교환 없이 현 위치에서 확정됩니다!`, 'font-bold text-amber-700 bg-amber-50 p-2 rounded-lg');
+                pivotObj.el.className = `card-visual ${pivotObj.themeClass} single-check`;
+                await new Promise(r => setTimeout(r, getDelay() * 0.8));
             }
-            
-            await swap(low, j);
             
             cardElements[j].el.className = 'card-visual sorted'; 
             sortedIndices.add(cardElements[j].originalIdx);
